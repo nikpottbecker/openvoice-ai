@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block content %}
+<header><h2>Live Calls</h2><span class="pill">auto refresh</span></header>
+<section hx-get="/partials/live" hx-trigger="every 2s" hx-swap="innerHTML">
+  {% include "partials/live_panel.html" %}
+</section>
+{% endblock %}

@@ -1,0 +1,14 @@
+{% if live %}
+<div class="panel">
+  <div class="split"><b>Telefonnummer</b><span>{{ live.phone }}</span></div>
+  <div class="split"><b>Dauer</b><span>{{ live.duration if live.duration else "beendet" }}</span></div>
+  <div class="split"><b>Schritt</b><span>{{ live.step }}</span></div>
+  <div class="split"><b>Intent</b><span>{{ live.intent }}</span></div>
+  <h3>Live Transcript</h3>
+  <pre>{{ "\n".join(live.transcript) }}</pre>
+  <h3>KI Antwort</h3>
+  <p>{{ live.reply }}</p>
+</div>
+{% else %}
+<div class="empty">Noch kein echter Anruf gefunden.</div>
+{% endif %}

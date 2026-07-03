@@ -1,0 +1,7 @@
+; Safe default: no public SIP, no placeholder registration.
+; Copy values from pjsip.conf.example after the FRITZ!Box SIP user exists.
+
+[transport-udp]
+type=transport
+protocol=udp
+bind=0.0.0.0:5060

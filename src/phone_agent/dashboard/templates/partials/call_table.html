@@ -1,0 +1,18 @@
+<table>
+  <thead><tr><th>Call-ID</th><th>Datum</th><th>Telefon</th><th>Dauer</th><th>Audio</th><th>Transkript</th><th>Zusammenfassung</th><th>Status</th></tr></thead>
+  <tbody>
+  {% for call in calls %}
+    <tr>
+      <td><a class="button" href="/history/{{ call.call_id }}">{{ call.call_id }}</a></td>
+      <td>{{ call.date }}</td><td>{{ call.phone }}</td><td>{{ call.duration }}</td>
+      <td>
+        {% for audio in call.audio_segments %}
+          <audio controls preload="none" src="{{ audio.url }}"></audio>
+        {% endfor %}
+        {% if call.audio_count > 3 %}<div class="muted">+ {{ call.audio_count - 3 }} weitere</div>{% endif %}
+      </td>
+      <td>{{ call.transcript }}</td><td>{{ call.summary }}</td><td>{{ call.status }}</td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>

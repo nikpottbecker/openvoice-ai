@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block content %}
+<header><h2>Entwurf ansehen</h2><a class="button" href="/email">Zurueck</a></header>
+<section class="panel">
+  <form method="post" action="/email/drafts/{{ draft.id }}/edit" class="edit-form">
+    <label>Empfaenger<input name="recipient" type="email" required value="{{ draft.recipient }}"></label>
+    <label>Betreff<input name="subject" required value="{{ draft.subject }}"></label>
+    <label>Nachricht<textarea name="body" rows="12" required>{{ draft.body }}</textarea></label>
+    <label>Interne Notiz<textarea name="internal_note" rows="8">{{ draft.internal_note }}</textarea></label>
+    {% if draft.status != "sent" and draft.audience != "internal" %}
+    <button type="submit" onclick="return confirm('Entwurf speichern?');">Speichern</button>
+    {% endif %}
+  </form>
+  <div class="actions">
+    {% if draft.status != "sent" and draft.audience != "internal" %}
+    <form method="post" action="/email/drafts/{{ draft.id }}/send" onsubmit="return confirm('Entwurf jetzt wirklich senden?');">
+      <button type="submit">Freigeben und senden</button>
+    </form>
+    <form method="post" action="/email/drafts/{{ draft.id }}/delete" onsubmit="return confirm('Entwurf wirklich loeschen?');">
+      <button class="danger" type="submit">Loeschen</button>
+    </form>
+    {% endif %}
+    <span class="pill">{{ draft.status }}</span>
+  </div>
+  {% if draft.error %}<pre>{{ draft.error }}</pre>{% endif %}
+</section>
+{% endblock %}

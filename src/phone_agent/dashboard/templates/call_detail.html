@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block content %}
+<header><h2>Call {{ call.call_id }}</h2><a class="button" href="/history">Zurueck</a></header>
+<section class="grid">
+  <div class="tile"><span>Datum/Uhrzeit</span><strong>{{ call.date }}</strong></div>
+  <div class="tile"><span>Telefonnummer</span><strong>{{ call.phone }}</strong></div>
+  <div class="tile"><span>Dauer</span><strong>{{ call.duration }}</strong></div>
+  <div class="tile"><span>Segmente</span><strong>{{ segments|length }}</strong></div>
+</section>
+<h3>Audio</h3>
+<div class="list">
+{% for audio in segments %}
+  <article>
+    <b>{{ audio.name }}</b>
+    <div class="split"><span>Groesse</span><span>{{ audio.size }}</span></div>
+    <div class="split"><span>Dauer</span><span>{{ audio.duration }}</span></div>
+    <audio controls preload="none" src="{{ audio.url }}"></audio>
+    <div class="actions"><a class="button" href="{{ audio.download_url }}">Download</a></div>
+  </article>
+{% else %}
+  <div class="empty">Keine Audiosegmente gefunden.</div>
+{% endfor %}
+</div>
+<h3>Transkript</h3>
+<pre>{{ call.transcript }}</pre>
+<h3>Zusammenfassung</h3>
+<pre>{{ call.summary }}</pre>
+<h3>Termin</h3>
+<pre>{{ call.appointment }}</pre>
+{% endblock %}

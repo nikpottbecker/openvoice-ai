@@ -1,0 +1,17 @@
+<table>
+  <thead><tr><th>Empfaenger</th><th>Betreff</th><th>Nachricht</th><th>Erstellt</th><th>Status</th><th>Aktion</th></tr></thead>
+  <tbody>
+  {% for draft in rows %}
+  <tr>
+    <td>{{ draft.recipient }}</td>
+    <td>{{ draft.subject }}</td>
+    <td><pre>{{ draft.body }}</pre>{% if draft.internal_note %}<details><summary>Interne Notiz</summary><pre>{{ draft.internal_note }}</pre></details>{% endif %}</td>
+    <td>{{ draft.created_at }}</td>
+    <td>{{ draft.status }}{% if draft.error %}<br>{{ draft.error }}{% endif %}</td>
+    <td><a class="button" href="/email/drafts/{{ draft.id }}">Ansehen</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6" class="muted">Keine Eintraege.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>

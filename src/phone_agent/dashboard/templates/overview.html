@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<header><h2>Uebersicht</h2><span class="pill">{{ overview.live_status }}</span></header>
+<section class="grid">
+  <div class="tile"><span>SIP</span><strong>{{ overview.sip_status }}</strong></div>
+  <div class="tile"><span>Agent</span><strong>{{ overview.agent_status }}</strong></div>
+  <div class="tile"><span>CPU</span><strong>{{ overview.cpu }}%</strong></div>
+  <div class="tile"><span>RAM</span><strong>{{ overview.ram }}%</strong></div>
+  <div class="tile"><span>STT Modell</span><strong>{{ overview.model }}</strong></div>
+  <div class="tile"><span>Provider</span><strong>{{ overview.provider }}</strong></div>
+  <div class="tile"><span>Letzter Anruf</span><strong>{{ overview.last_call.phone if overview.last_call else "n/a" }}</strong></div>
+  <div class="tile"><span>Antwortzeit</span><strong>{{ overview.avg_response }}</strong></div>
+</section>
+<h3>Letzte Gespraeche</h3>
+{% include "partials/call_table.html" %}
+{% endblock %}

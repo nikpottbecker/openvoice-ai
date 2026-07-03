@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">OpenVoice AI logo</title>
+  <desc id="desc">Abstract voice wave inside a rounded square.</desc>
+  <rect width="512" height="512" rx="96" fill="#0b0d10"/>
+  <circle cx="256" cy="256" r="168" fill="none" stroke="#5dd6b3" stroke-width="24"/>
+  <path d="M156 274c28-82 58-82 86 0s58 82 114 0" fill="none" stroke="#eef2f7" stroke-width="28" stroke-linecap="round"/>
+  <path d="M156 226c28 82 58 82 86 0s58-82 114 0" fill="none" stroke="#5dd6b3" stroke-width="20" stroke-linecap="round" opacity=".85"/>
+</svg>

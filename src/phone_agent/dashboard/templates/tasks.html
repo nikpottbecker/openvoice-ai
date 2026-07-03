@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block content %}
+<header><h2>Termine, Rueckrufe, Nachrichten</h2></header>
+<div class="list">
+{% for item in items %}
+  <article><b>{{ item.type }}</b><span>{{ item.phone }}</span><p>{{ item.summary }}</p><em>{{ item.status }}</em></article>
+{% else %}
+  <div class="empty">Keine offenen Eintraege.</div>
+{% endfor %}
+</div>
+{% endblock %}

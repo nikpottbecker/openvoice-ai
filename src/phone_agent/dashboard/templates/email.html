@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<header><h2>E-Mail</h2><span class="pill">Extern nur manuell</span></header>
+<section class="panel">
+  <h3>Testmail manuell senden</h3>
+  <form method="post" action="/email/test-send" onsubmit="return confirm('Testmail jetzt wirklich senden?');" class="inline-form">
+    <input name="recipient" type="email" required placeholder="Empfaenger">
+    <button type="submit">Testmail senden</button>
+  </form>
+</section>
+
+<h2>Intern</h2>
+{% for status,label in [("internal_sent","Gesendet"),("internal_failed","Fehlgeschlagen")] %}
+<h3>{{ label }}</h3>
+{% set rows = groups[status] %}
+{% include "partials/email_table.html" %}
+{% endfor %}
+
+<h2>Extern</h2>
+{% for status,label in [("external_draft","Entwuerfe"),("external_queued","Warteschlange"),("external_sent","Gesendet"),("external_failed","Fehler")] %}
+<h3>{{ label }}</h3>
+{% set rows = groups[status] %}
+{% include "partials/email_table.html" %}
+{% endfor %}
+{% endblock %}

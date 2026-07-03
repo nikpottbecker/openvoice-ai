@@ -1,0 +1,541 @@
+import json
+import logging
+import os
+import re
+import sqlite3
+import subprocess
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Any
+
+import psutil
+from fastapi import FastAPI, Form, Request
+from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+
+from phone_agent.config import get_settings
+from phone_agent.email.drafts import delete_draft, get_draft, list_drafts, mark_error, mark_sent, update_draft
+from phone_agent.email.smtp_client import send_message
+
+
+BASE_DIR = Path(__file__).resolve().parent
+templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
+app = FastAPI(title="OpenVoice AI Dashboard")
+app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
+logger = logging.getLogger("phone_agent.dashboard")
+
+
+def _db_path() -> Path:
+    return get_settings().app_base_dir / "dashboard" / "dashboard.sqlite3"
+
+
+def _connect() -> sqlite3.Connection:
+    path = _db_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(path)
+    conn.execute(
+        "create table if not exists call_notes (call_id text primary key, status text, updated_at text)"
+    )
+    return conn
+
+
+@app.middleware("http")
+async def require_cloudflare_access(request: Request, call_next):
+    if request.url.path in {"/healthz"}:
+        return await call_next(request)
+    require_access = os.getenv("DASHBOARD_REQUIRE_ACCESS", "true").lower() != "false"
+    access_email = request.headers.get("cf-access-authenticated-user-email")
+    if require_access and not access_email:
+        return HTMLResponse("Cloudflare Access required.", status_code=403)
+    request.state.user_email = access_email or "local"
+    return await call_next(request)
+
+
+@app.on_event("startup")
+def startup() -> None:
+    _connect().close()
+
+
+@app.get("/healthz", response_class=PlainTextResponse)
+def healthz() -> str:
+    return "ok"
+
+
+@app.get("/", response_class=HTMLResponse)
+def overview(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        "overview.html",
+        {
+            "request": request,
+            "active": "overview",
+            "overview": collect_overview(),
+            "calls": recent_calls(5),
+        },
+    )
+
+
+@app.get("/live", response_class=HTMLResponse)
+def live(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        "live.html",
+        {"request": request, "active": "live", "live": live_call()},
+    )
+
+
+@app.get("/history", response_class=HTMLResponse)
+def history(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        "history.html",
+        {
+            "request": request,
+            "active": "history",
+            "calls": recent_calls(50),
+            "storage": recording_storage(),
+        },
+    )
+
+
+@app.get("/history/{call_id}", response_class=HTMLResponse)
+def call_detail(request: Request, call_id: str) -> HTMLResponse:
+    if not valid_id(call_id):
+        return HTMLResponse("Call not found", status_code=404)
+    call = call_by_id(call_id)
+    if not call:
+        return HTMLResponse("Call not found", status_code=404)
+    return templates.TemplateResponse(
+        "call_detail.html",
+        {"request": request, "active": "history", "call": call, "segments": audio_segments(call_id)},
+    )
+
+
+@app.get("/audio/{call_id}/{filename}")
+def call_audio(request: Request, call_id: str, filename: str, download: bool = False) -> FileResponse:
+    path = safe_audio_path(call_id, filename)
+    if not path:
+        return HTMLResponse("Audio not found", status_code=404)
+    logger.info("audio_access call_id=%s file=%s user=%s download=%s", call_id, filename, _user(request), download)
+    return FileResponse(
+        path,
+        media_type="audio/wav",
+        filename=filename if download else None,
+        headers={"Content-Disposition": f"{'attachment' if download else 'inline'}; filename=\"{filename}\""},
+    )
+
+
+@app.get("/tasks", response_class=HTMLResponse)
+def tasks(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        "tasks.html",
+        {"request": request, "active": "tasks", "items": task_items()},
+    )
+
+
+@app.get("/logs", response_class=HTMLResponse)
+def logs(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        "logs.html",
+        {"request": request, "active": "logs", "logs": collect_logs()},
+    )
+
+
+@app.get("/email", response_class=HTMLResponse)
+def email_page(request: Request) -> HTMLResponse:
+    drafts = list_drafts()
+    grouped = {
+        "internal_sent": [item for item in drafts if item.get("audience") == "internal" and item["status"] == "sent"],
+        "internal_failed": [item for item in drafts if item.get("audience") == "internal" and item["status"] in {"failed", "error"}],
+        "external_draft": [item for item in drafts if item.get("audience", "external") == "external" and item["status"] == "draft"],
+        "external_sent": [item for item in drafts if item.get("audience", "external") == "external" and item["status"] == "sent"],
+        "external_queued": [item for item in drafts if item.get("audience", "external") == "external" and item["status"] == "queued"],
+        "external_failed": [item for item in drafts if item.get("audience", "external") == "external" and item["status"] in {"failed", "error"}],
+    }
+    return templates.TemplateResponse(
+        "email.html",
+        {"request": request, "active": "email", "groups": grouped},
+    )
+
+
+@app.get("/email/drafts/{draft_id}", response_class=HTMLResponse)
+def email_draft_view(request: Request, draft_id: int) -> HTMLResponse:
+    draft = get_draft(draft_id)
+    if not draft:
+        return HTMLResponse("Draft not found", status_code=404)
+    return templates.TemplateResponse(
+        "email_draft.html",
+        {"request": request, "active": "email", "draft": draft},
+    )
+
+
+@app.post("/email/drafts/{draft_id}/edit")
+def email_draft_edit(
+    request: Request,
+    draft_id: int,
+    recipient: str = Form(...),
+    subject: str = Form(...),
+    body: str = Form(...),
+    internal_note: str = Form(""),
+) -> RedirectResponse:
+    update_draft(draft_id, recipient.strip(), subject.strip(), body, internal_note)
+    logger.info("email_draft_updated draft_id=%s user=%s recipient=%s subject=%s", draft_id, _user(request), recipient, subject)
+    return RedirectResponse(f"/email/drafts/{draft_id}", status_code=303)
+
+
+@app.post("/email/drafts/{draft_id}/delete")
+def email_draft_delete(request: Request, draft_id: int) -> RedirectResponse:
+    delete_draft(draft_id)
+    logger.info("email_draft_deleted draft_id=%s user=%s", draft_id, _user(request))
+    return RedirectResponse("/email", status_code=303)
+
+
+@app.post("/email/drafts/{draft_id}/send")
+def email_draft_send(request: Request, draft_id: int) -> RedirectResponse:
+    draft = get_draft(draft_id)
+    if not draft:
+        return RedirectResponse("/email", status_code=303)
+    if draft.get("audience") == "internal":
+        logger.warning("internal_email_manual_send_blocked draft_id=%s user=%s", draft_id, _user(request))
+        return RedirectResponse(f"/email/drafts/{draft_id}", status_code=303)
+    try:
+        send_message(draft["recipient"], draft["subject"], draft["body"])
+        mark_sent(draft_id)
+        logger.info("email_draft_sent draft_id=%s user=%s recipient=%s subject=%s", draft_id, _user(request), draft["recipient"], draft["subject"])
+    except Exception as exc:
+        mark_error(draft_id, str(exc))
+        logger.exception("email_draft_send_failed draft_id=%s user=%s", draft_id, _user(request))
+    return RedirectResponse(f"/email/drafts/{draft_id}", status_code=303)
+
+
+@app.post("/email/test-send")
+def email_test_send(request: Request, recipient: str = Form(...)) -> RedirectResponse:
+    settings = get_settings()
+    subject = "Phone-Agent Testmail"
+    body = "Dies ist eine manuell ausgeloeste Testmail aus dem Phone-Agent Dashboard."
+    try:
+        send_message(recipient.strip(), subject, body)
+        logger.info("email_test_sent user=%s recipient=%s", _user(request), recipient)
+    except Exception:
+        logger.exception("email_test_failed user=%s recipient=%s", _user(request), recipient)
+    return RedirectResponse("/email", status_code=303)
+
+
+@app.get("/ai", response_class=HTMLResponse)
+def ai(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        "ai.html",
+        {"request": request, "active": "ai", "ai": collect_ai()},
+    )
+
+
+@app.get("/settings", response_class=HTMLResponse)
+def settings_page(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        "settings.html",
+        {"request": request, "active": "settings", "settings": safe_settings()},
+    )
+
+
+@app.get("/partials/live", response_class=HTMLResponse)
+def live_partial(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse("partials/live_panel.html", {"request": request, "live": live_call()})
+
+
+def collect_overview() -> dict[str, Any]:
+    settings = get_settings()
+    calls = recent_calls(20)
+    return {
+        "live_status": "online",
+        "sip_status": sip_status(),
+        "agent_status": service_state("asterisk"),
+        "cpu": psutil.cpu_percent(interval=0.1),
+        "ram": psutil.virtual_memory().percent,
+        "model": settings.whisper_model,
+        "provider": settings.llm_provider,
+        "last_call": calls[0] if calls else None,
+        "avg_response": average_response_time(),
+    }
+
+
+def live_call() -> dict[str, Any] | None:
+    call_id = latest_call_id()
+    if not call_id:
+        return None
+    lines = log_lines(call_id)
+    finished = any("call_finished" in line for line in lines)
+    start_ts = parse_log_time(lines[0]) if lines else None
+    last_state = last_matching(lines, "conversation_state_")
+    transcript = [extract_after(line, "text=") for line in lines if "transcript_full" in line]
+    return {
+        "call_id": call_id,
+        "phone": extract_regex(lines[0], r"caller_id=([^ ]+)") if lines else "",
+        "duration": max(0, int(time.time() - start_ts.timestamp())) if start_ts and not finished else None,
+        "step": "finished" if finished else phase_from_lines(lines),
+        "transcript": transcript,
+        "intent": extract_regex(last_state, r"intent=([^ ]+)") if last_state else "",
+        "reply": extract_regex(last_state, r"assistant_reply=(.*?) rolling_summary=") if last_state else "",
+    }
+
+
+def recent_calls(limit: int) -> list[dict[str, Any]]:
+    settings = get_settings()
+    calls = []
+    for path in sorted(settings.transcripts_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
+        if path.name.startswith("sim-"):
+            continue
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            continue
+        call_id = path.stem
+        appt = data.get("appointment") or {}
+        calls.append(call_row(call_id, data, appt))
+        if len(calls) >= limit:
+            break
+    return calls
+
+
+def call_by_id(call_id: str) -> dict[str, Any] | None:
+    if not valid_id(call_id):
+        return None
+    path = get_settings().transcripts_dir / f"{call_id}.json"
+    if not path.exists():
+        return None
+    data = json.loads(path.read_text(encoding="utf-8"))
+    return call_row(call_id, data, data.get("appointment") or {})
+
+
+def call_row(call_id: str, data: dict[str, Any], appt: dict[str, Any]) -> dict[str, Any]:
+    segments = audio_segments(call_id)
+    return {
+        "call_id": call_id,
+        "date": data.get("started_at", ""),
+        "phone": data.get("caller_id", ""),
+        "duration": call_duration(call_id),
+        "audio": latest_audio(call_id),
+        "audio_count": len(segments),
+        "audio_segments": segments[:3],
+        "transcript": " / ".join(item.get("content", "") for item in data.get("transcript", []) if item.get("role") == "user"),
+        "summary": data.get("summary", ""),
+        "appointment": ", ".join(str(appt.get(k) or "") for k in ("name", "date", "time", "topic", "phone")).strip(", "),
+        "status": "done" if data.get("ended") else "open",
+    }
+
+
+def task_items() -> list[dict[str, str]]:
+    rows = []
+    for call in recent_calls(100):
+        text = f"{call['summary']} {call['transcript']}".lower()
+        if any(word in text for word in ("termin", "rueckruf", "rückruf", "nachricht")) or call["appointment"]:
+            rows.append({"type": "Termin/Rueckruf/Nachricht", "phone": call["phone"], "summary": call["summary"] or call["transcript"], "status": call["status"]})
+    return rows
+
+
+def collect_logs() -> dict[str, str]:
+    return {
+        "phone_agent": "\n".join(tail(get_settings().logs_dir / "phone-agent.log", 120)),
+        "asterisk": run(["asterisk", "-rx", "core show channels"]).strip(),
+        "errors": "\n".join(line for line in tail(get_settings().logs_dir / "phone-agent.log", 300) if "ERROR" in line or "WARNING" in line),
+        "healthcheck": run([str(get_settings().app_base_dir / "scripts" / "healthcheck.sh")]),
+    }
+
+
+def collect_ai() -> dict[str, Any]:
+    settings = get_settings()
+    usage_lines = [line for line in tail(settings.logs_dir / "phone-agent.log", 500) if "llm_usage" in line]
+    return {
+        "nvidia_model": settings.nvidia_model,
+        "openrouter_status": "configured" if bool(settings.openrouter_api_key) else "missing",
+        "provider": settings.llm_provider,
+        "usage": usage_lines[-20:],
+        "avg_llm": average_phase_time("llm"),
+        "cost": "not available",
+    }
+
+
+def safe_settings() -> dict[str, str]:
+    settings = get_settings()
+    return {
+        "STT": f"{settings.whisper_model}, {settings.whisper_language}, record={settings.record_seconds}s, silence={settings.silence_seconds}s",
+        "TTS": f"{settings.piper_model.name}",
+        "SIP": sip_status(),
+        "Cloudflare": "Access required by dashboard middleware; tunnel service checked separately",
+        "Mail": f"SMTP={mask_host(settings.smtp_host)}, IMAP={mask_host(settings.imap_host)}, from={mask_email(settings.mail_from)}",
+        "n8n": "configured" if settings.n8n_webhook_url else "not configured",
+        "Google Calendar": "managed in n8n",
+    }
+
+
+def mask_email(value: str) -> str:
+    if not value or "@" not in value:
+        return "not configured"
+    name, domain = value.split("@", 1)
+    return f"{name[:2]}***@{domain}"
+
+
+def mask_host(value: str) -> str:
+    return value or "not configured"
+
+
+def _user(request: Request) -> str:
+    return getattr(request.state, "user_email", "unknown")
+
+
+def sip_status() -> str:
+    out = run(["asterisk", "-rx", "pjsip show registrations"])
+    return "Registered" if "Registered" in out else "Not registered"
+
+
+def service_state(name: str) -> str:
+    return run(["systemctl", "is-active", name]).strip() or "unknown"
+
+
+def latest_call_id() -> str | None:
+    ids = []
+    for line in tail(get_settings().logs_dir / "phone-agent.log", 1000):
+        if "call_started call_id=" in line and "call_id=sim-" not in line:
+            ids.append(extract_regex(line, r"call_id=([^ ]+)"))
+    return ids[-1] if ids else None
+
+
+def log_lines(call_id: str) -> list[str]:
+    return [line for line in tail(get_settings().logs_dir / "phone-agent.log", 2000) if call_id in line]
+
+
+def tail(path: Path, lines: int) -> list[str]:
+    if not path.exists():
+        return []
+    data = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    return data[-lines:]
+
+
+def run(cmd: list[str]) -> str:
+    try:
+        return subprocess.run(cmd, check=False, text=True, capture_output=True, timeout=6).stdout
+    except Exception as exc:
+        return str(exc)
+
+
+def call_duration(call_id: str) -> str:
+    lines = log_lines(call_id)
+    start = parse_log_time(lines[0]) if lines else None
+    end_line = last_matching(lines, "call_finished") or (lines[-1] if lines else "")
+    end = parse_log_time(end_line) if end_line else None
+    if start and end:
+        return f"{int((end - start).total_seconds())}s"
+    return ""
+
+
+def latest_audio(call_id: str) -> str:
+    paths = sorted(recording_paths(call_id), key=lambda p: p.stat().st_mtime, reverse=True)
+    return str(paths[0]) if paths else ""
+
+
+def recording_paths(call_id: str) -> list[Path]:
+    if not valid_id(call_id):
+        return []
+    settings = get_settings()
+    paths = list((settings.recordings_dir / call_id).glob(f"{call_id}-*.wav"))
+    paths.extend(settings.recordings_dir.glob(f"{call_id}-*.wav"))
+    return sorted({path.resolve() for path in paths if "-reply" not in path.name and ".stt" not in path.name})
+
+
+def audio_segments(call_id: str) -> list[dict[str, Any]]:
+    segments = []
+    for path in recording_paths(call_id):
+        segments.append(
+            {
+                "name": path.name,
+                "size": human_size(path.stat().st_size),
+                "duration": wav_duration(path),
+                "url": f"/audio/{call_id}/{path.name}",
+                "download_url": f"/audio/{call_id}/{path.name}?download=true",
+            }
+        )
+    return segments
+
+
+def safe_audio_path(call_id: str, filename: str) -> Path | None:
+    if not valid_id(call_id) or not re.fullmatch(r"[A-Za-z0-9_.-]+", filename):
+        return None
+    for path in recording_paths(call_id):
+        if path.name == filename and path.exists():
+            return path
+    return None
+
+
+def wav_duration(path: Path) -> str:
+    try:
+        import wave
+
+        with wave.open(str(path), "rb") as wav:
+            return f"{wav.getnframes() / float(wav.getframerate()):.2f}s"
+    except Exception:
+        return "n/a"
+
+
+def recording_storage() -> dict[str, str]:
+    root = get_settings().recordings_dir
+    total = sum(path.stat().st_size for path in root.rglob("*") if path.is_file())
+    return {"used": human_size(total), "retention": "keine automatische Loeschung"}
+
+
+def human_size(size: int) -> str:
+    value = float(size)
+    for unit in ("B", "KB", "MB", "GB"):
+        if value < 1024 or unit == "GB":
+            return f"{value:.1f} {unit}"
+        value /= 1024
+
+
+def valid_id(value: str) -> bool:
+    return bool(re.fullmatch(r"[A-Za-z0-9_.-]+", value))
+
+
+def average_response_time() -> str:
+    vals = []
+    for phase in ("record", "stt", "llm", "tts"):
+        value = average_phase_time(phase)
+        if value is not None:
+            vals.append(value)
+    return f"{sum(vals):.1f}s" if vals else "n/a"
+
+
+def average_phase_time(phase: str) -> float | None:
+    values = []
+    pattern = re.compile(rf"phase={re.escape(phase)} seconds=([0-9.]+)")
+    for line in tail(get_settings().logs_dir / "phone-agent.log", 800):
+        match = pattern.search(line)
+        if match:
+            values.append(float(match.group(1)))
+    return round(sum(values[-20:]) / len(values[-20:]), 3) if values else None
+
+
+def phase_from_lines(lines: list[str]) -> str:
+    for phase in ("record", "stt", "llm", "tts", "playback"):
+        if last_matching(lines, f"phase={phase}"):
+            current = phase
+    return locals().get("current", "starting")
+
+
+def parse_log_time(line: str) -> datetime | None:
+    try:
+        return datetime.strptime(line[:23], "%Y-%m-%d %H:%M:%S,%f")
+    except Exception:
+        return None
+
+
+def last_matching(lines: list[str], needle: str) -> str:
+    for line in reversed(lines):
+        if needle in line:
+            return line
+    return ""
+
+
+def extract_regex(text: str, pattern: str) -> str:
+    match = re.search(pattern, text)
+    return match.group(1).strip() if match else ""
+
+
+def extract_after(text: str, marker: str) -> str:
+    return text.split(marker, 1)[1].strip() if marker in text else ""

@@ -1,0 +1,9 @@
+[Unit]
+Description=Phone Agent healthcheck
+After=network-online.target asterisk.service
+
+[Service]
+Type=oneshot
+WorkingDirectory=/opt/phone-agent
+ExecStart=/opt/phone-agent/scripts/healthcheck.sh
+User=root

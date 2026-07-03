@@ -1,0 +1,16 @@
+services:
+  openvoice-ai:
+    build: .
+    container_name: openvoice-ai
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8088:8088"
+    volumes:
+      - ./data:/opt/phone-agent/data
+      - ./recordings:/opt/phone-agent/recordings
+      - ./transcripts:/opt/phone-agent/transcripts
+      - ./logs:/opt/phone-agent/logs
+    command: >
+      sh -c "python -m uvicorn phone_agent.dashboard.app:app --host 0.0.0.0 --port 8088"

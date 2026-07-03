@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-labelledby="title desc">
+  <title id="title">OpenVoice AI</title>
+  <desc id="desc">Open-source AI communication platform branding image.</desc>
+  <rect width="1200" height="630" fill="#0b0d10"/>
+  <circle cx="235" cy="315" r="145" fill="none" stroke="#5dd6b3" stroke-width="20"/>
+  <path d="M105 332c45-116 94-116 139 0s94 116 181 0" fill="none" stroke="#eef2f7" stroke-width="24" stroke-linecap="round"/>
+  <path d="M105 286c45 116 94 116 139 0s94-116 181 0" fill="none" stroke="#5dd6b3" stroke-width="18" stroke-linecap="round"/>
+  <text x="470" y="292" fill="#eef2f7" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="76" font-weight="700">OpenVoice AI</text>
+  <text x="474" y="366" fill="#9da8b8" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="34">The Open-Source AI Communication Platform.</text>
+</svg>

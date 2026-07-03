@@ -1,0 +1,11 @@
+{
+  "type": "appointment",
+  "caller_id": "+490000000000",
+  "name": "Example Caller",
+  "date": "2026-07-10",
+  "time": "14:30",
+  "topic": "Rueckruf wegen Projektbesprechung",
+  "summary": "Example Caller moechte am 10.07.2026 um 14:30 Uhr einen Termin.",
+  "recording_path": "/opt/phone-agent/recordings/example.wav",
+  "transcript_path": "/opt/phone-agent/transcripts/example.json"
+}

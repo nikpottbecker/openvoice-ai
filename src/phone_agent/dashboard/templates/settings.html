@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block content %}
+<header><h2>Einstellungen</h2><span class="pill">read only</span></header>
+<section class="grid">
+{% for key,value in settings.items() %}
+  <div class="tile wide"><span>{{ key }}</span><strong>{{ value }}</strong></div>
+{% endfor %}
+</section>
+{% endblock %}

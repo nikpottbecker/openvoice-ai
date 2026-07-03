@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block content %}
+<header><h2>Gespraechshistorie</h2><span class="pill">Speicher: {{ storage.used }} · {{ storage.retention }}</span></header>
+{% include "partials/call_table.html" %}
+{% endblock %}

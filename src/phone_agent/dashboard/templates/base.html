@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OpenVoice AI Dashboard</title>
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+  <aside>
+    <h1>OpenVoice AI</h1>
+    <nav>
+      {% for key,label in [("overview","Uebersicht"),("live","Live Calls"),("history","Historie"),("tasks","Termine"),("email","E-Mail"),("logs","Logs"),("ai","KI"),("settings","Einstellungen")] %}
+      <a class="{{ 'active' if active == key else '' }}" href="{{ '/' if key == 'overview' else '/' + key }}">{{ label }}</a>
+      {% endfor %}
+    </nav>
+  </aside>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

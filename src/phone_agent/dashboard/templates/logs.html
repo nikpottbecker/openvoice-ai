@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block content %}
+<header><h2>Logs</h2></header>
+{% for name,content in logs.items() %}
+<h3>{{ name }}</h3><pre>{{ content }}</pre>
+{% endfor %}
+{% endblock %}

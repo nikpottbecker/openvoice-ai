@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block content %}
+<header><h2>KI</h2></header>
+<section class="grid">
+  <div class="tile"><span>NVIDIA Modell</span><strong>{{ ai.nvidia_model }}</strong></div>
+  <div class="tile"><span>OpenRouter</span><strong>{{ ai.openrouter_status }}</strong></div>
+  <div class="tile"><span>Provider</span><strong>{{ ai.provider }}</strong></div>
+  <div class="tile"><span>Antwortzeiten</span><strong>{{ ai.avg_llm if ai.avg_llm else "n/a" }}s</strong></div>
+  <div class="tile"><span>Kosten</span><strong>{{ ai.cost }}</strong></div>
+</section>
+<h3>Token/Provider Logs</h3>
+<pre>{{ "\n".join(ai.usage) }}</pre>
+{% endblock %}

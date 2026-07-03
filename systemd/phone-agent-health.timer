@@ -1,0 +1,10 @@
+[Unit]
+Description=Run Phone Agent healthcheck periodically
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+Unit=phone-agent-health.service
+
+[Install]
+WantedBy=timers.target

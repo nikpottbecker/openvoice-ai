@@ -1,0 +1,114 @@
+{
+  "name": "OpenVoice AI to Google Calendar",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "openvoice-ai/calendar",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "openvoice-ai-webhook",
+      "name": "OpenVoice AI Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.type}}",
+              "operation": "equals",
+              "value2": "appointment"
+            }
+          ]
+        }
+      },
+      "id": "only-appointments",
+      "name": "Only Appointments",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "calendar": "primary",
+        "start": "={{$json.date + 'T' + $json.time + ':00'}}",
+        "end": "={{$json.date + 'T' + $json.time + ':00'}}",
+        "additionalFields": {
+          "description": "={{$json.summary + '\\n\\nAnrufer: ' + $json.caller_id + '\\nCall-ID: ' + $json.call_id}}",
+          "summary": "={{'Termin: ' + $json.topic + ' - ' + $json.name}}"
+        }
+      },
+      "id": "create-calendar-event",
+      "name": "Create Calendar Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1,
+      "position": [460, -80],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "REPLACE_WITH_N8N_CREDENTIAL_ID",
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"ok\": true}"
+      },
+      "id": "respond-ok",
+      "name": "Respond OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [700, 0]
+    }
+  ],
+  "connections": {
+    "OpenVoice AI Webhook": {
+      "main": [
+        [
+          {
+            "node": "Only Appointments",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only Appointments": {
+      "main": [
+        [
+          {
+            "node": "Create Calendar Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Calendar Event": {
+      "main": [
+        [
+          {
+            "node": "Respond OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
