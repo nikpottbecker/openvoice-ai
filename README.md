@@ -155,6 +155,10 @@ No. Secrets must be masked and configured only through `.env`.
 
 See `SUPPORT.md`.
 
+## Funding
+
+OpenVoice AI is MIT licensed and self-hosted first. Commercial support, guided setup and future managed hosting are planned. See `docs/FUNDING.md` and `docs/MONETIZATION.md`.
+
 ## License
 
 MIT. See `LICENSE`.
