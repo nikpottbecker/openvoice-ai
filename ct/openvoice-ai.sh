@@ -3,16 +3,20 @@
 # Draft for community-scripts/ProxmoxVED.
 # Copy this file into ProxmoxVED/ct/openvoice-ai.sh before submission.
 
-source <(curl -fsSL https://raw.githubusercontent.com/YOUR_USERNAME/ProxmoxVED/main/misc/build.func)
+source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
+
+# Copyright (c) 2026 OpenVoice AI contributors
+# License: MIT
+# Source: https://github.com/nikpottbecker/openvoice-ai
 
 APP="OpenVoice AI"
-var_tags="ai;communication;phone"
-var_cpu="4"
-var_ram="6144"
-var_disk="20"
-var_os="debian"
-var_version="12"
-var_unprivileged="1"
+var_tags="${var_tags:-ai;communication;phone}"
+var_cpu="${var_cpu:-4}"
+var_ram="${var_ram:-6144}"
+var_disk="${var_disk:-20}"
+var_os="${var_os:-debian}"
+var_version="${var_version:-12}"
+var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
 variables

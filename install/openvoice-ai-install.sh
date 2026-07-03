@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Copyright (c) 2026 OpenVoice AI contributors
 # License: MIT
-# Source: https://github.com/YOUR_ORG/openvoice-ai
+# Source: https://github.com/nikpottbecker/openvoice-ai
 
 source /dev/stdin <<<"$FUNCTIONS_FILE_PATH"
 color
@@ -28,7 +28,7 @@ $STD apt-get install -y --no-install-recommends \
 msg_ok "Installed Dependencies"
 
 msg_info "Installing OpenVoice AI"
-git clone --depth 1 https://github.com/YOUR_ORG/openvoice-ai.git /opt/phone-agent
+git clone --depth 1 https://github.com/nikpottbecker/openvoice-ai.git /opt/phone-agent
 cd /opt/phone-agent
 bash scripts/install.sh
 msg_ok "Installed OpenVoice AI"

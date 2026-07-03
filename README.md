@@ -1,6 +1,6 @@
 # OpenVoice AI
 
-[![CI](https://github.com/YOUR_ORG/openvoice-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_ORG/openvoice-ai/actions/workflows/ci.yml)
+[![CI](https://github.com/nikpottbecker/openvoice-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/nikpottbecker/openvoice-ai/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Status](https://img.shields.io/badge/status-preview%20alpha-orange.svg)](CHANGELOG.md)
 
@@ -83,7 +83,7 @@ Supported targets:
 ### Quick Start
 
 ```bash
-git clone https://github.com/YOUR_ORG/openvoice-ai.git
+git clone https://github.com/nikpottbecker/openvoice-ai.git
 cd openvoice-ai
 sudo bash install.sh
 sudo cp .env.example .env
