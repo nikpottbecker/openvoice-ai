@@ -1,4 +1,4 @@
-﻿# OpenVoice AI
+# OpenVoice AI
 
 [![CI](https://github.com/nikpottbecker/openvoice-ai/actions/workflows/ci.yml/badge.svg)](https://github.com/nikpottbecker/openvoice-ai/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
