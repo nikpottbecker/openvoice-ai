@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 
-# Draft for community-scripts/ProxmoxVED.
-# Copy this file into ProxmoxVED/ct/openvoice-ai.sh before submission.
-
 source <(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVED/main/misc/build.func)
 
-# Copyright (c) 2026 OpenVoice AI contributors
-# License: MIT
+# Copyright (c) 2021-2026 community-scripts ORG
+# Author: Nik Pottbecker (nikpottbecker)
+# License: MIT | https://github.com/community-scripts/ProxmoxVED/raw/main/LICENSE
 # Source: https://github.com/nikpottbecker/openvoice-ai
 
 APP="OpenVoice AI"
@@ -16,6 +14,7 @@ var_ram="${var_ram:-6144}"
 var_disk="${var_disk:-20}"
 var_os="${var_os:-debian}"
 var_version="${var_version:-12}"
+var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
 header_info "$APP"
