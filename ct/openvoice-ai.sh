@@ -17,6 +17,15 @@ var_version="${var_version:-12}"
 var_arm64="${var_arm64:-no}"
 var_unprivileged="${var_unprivileged:-1}"
 
+cat <<'EOF'
+   ___                __     __    _               _    ___
+  / _ \ _ __   ___ _ _\ \   / /__ (_) ___ ___     / \  |_ _|
+ | | | | '_ \ / _ \ '_ \ \ / / _ \| |/ __/ _ \   / _ \  | |
+ | |_| | |_) |  __/ | | \ V / (_) | | (_|  __/  / ___ \ | |
+  \___/| .__/ \___|_| |_|\_/ \___/|_|\___\___| /_/   \_\___|
+       |_|
+EOF
+
 header_info "$APP"
 variables
 color
