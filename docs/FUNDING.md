@@ -2,22 +2,9 @@
 
 OpenVoice AI is MIT licensed and self-hosted first.
 
-Funding options planned:
+The project may offer sponsorship, support or professional services in the future. The core self-hosted platform should remain useful and open.
 
-- GitHub Sponsors
-- paid guided setup
-- monthly self-hosted support
-- custom workflow integrations
-- future managed hosting
-- future enterprise features
-
-The core self-hosted platform should remain useful and open.
-
-## Sponsor Message
-
-If OpenVoice AI helps you build a private AI communication stack, consider sponsoring development or booking paid setup/support.
-
-Funding will first be used for:
+Funding helps with:
 
 - STT quality work
 - install hardening

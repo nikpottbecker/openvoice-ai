@@ -157,7 +157,7 @@ See `SUPPORT.md`.
 
 ## Funding
 
-OpenVoice AI is MIT licensed and self-hosted first. Commercial support, guided setup and future managed hosting are planned. See `docs/FUNDING.md` and `docs/MONETIZATION.md`.
+OpenVoice AI is MIT licensed and self-hosted first. See `docs/FUNDING.md`.
 
 ## License
 

@@ -1,14 +1,25 @@
-# OpenVoice AI Marketing Kit
+# OpenVoice AI Media Kit
 
-This folder contains launch and community marketing materials for OpenVoice AI.
+Public-facing brand and project messaging for OpenVoice AI.
 
-Use these assets honestly:
+## Short Description
 
-- say `preview` or `early alpha`
-- do not claim production readiness yet
-- do not use fake stars, fake users or inflated benchmarks
-- do not share private call recordings, transcripts, phone numbers or secrets
+OpenVoice AI is a self-hosted AI communication platform for phone calls, email workflows, dashboards, automations and AI providers.
 
-Primary URL:
+## One-Liner
+
+The open-source AI communication platform.
+
+## Project URL
 
 https://github.com/nikpottbecker/openvoice-ai
+
+## Status
+
+Preview / early alpha.
+
+## Usage Notes
+
+- Use only synthetic demo data in screenshots.
+- Do not publish private call recordings, transcripts, phone numbers or credentials.
+- Do not claim production readiness before the setup and STT pipeline are stable.
