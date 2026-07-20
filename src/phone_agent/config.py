@@ -1,5 +1,7 @@
+import json
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 
 from dotenv import load_dotenv
 from pydantic import Field
@@ -51,6 +53,15 @@ class Settings(BaseSettings):
     piper_bin: Path = Path("/usr/local/bin/piper")
     piper_model: Path = Path("/opt/phone-agent/models/piper/de_DE-thorsten-medium.onnx")
     piper_config: Path = Path("/opt/phone-agent/models/piper/de_DE-thorsten-medium.onnx.json")
+    tts_provider: str = "piper"
+    tts_voice: str = "de_DE-thorsten-medium"
+    tts_fallback_voice: str = "de_DE-thorsten-medium"
+    tts_length_scale: float = 1.0
+    tts_noise_scale: float = 0.667
+    tts_noise_w_scale: float = 0.8
+    tts_sentence_silence: float = 0.22
+    tts_volume: float = 1.0
+    tts_output_sample_rate: int = 8000
 
     asterisk_sounds_dir: Path = Path("/var/lib/asterisk/sounds/phone-agent")
     max_turns: int = Field(default=8, ge=1, le=20)
@@ -77,10 +88,59 @@ class Settings(BaseSettings):
         return self.app_base_dir / "config"
 
 
+RUNTIME_SETTING_KEYS = {
+    "whisper_model",
+    "whisper_language",
+    "record_seconds",
+    "silence_seconds",
+    "min_record_seconds",
+    "post_playback_wait_seconds",
+    "max_turns",
+    "max_llm_rounds_per_call",
+    "llm_provider",
+    "nvidia_model",
+    "openrouter_model",
+    "openrouter_fallback_model",
+    "openrouter_max_tokens",
+    "openrouter_temperature",
+    "openrouter_top_p",
+}
+
+
+def runtime_settings_path(settings: Settings | None = None) -> Path:
+    active = settings or Settings()
+    return active.config_dir / "runtime_settings.json"
+
+
+def load_runtime_settings(settings: Settings | None = None) -> dict[str, Any]:
+    path = runtime_settings_path(settings)
+    if not path.exists():
+        return {}
+    data = json.loads(path.read_text(encoding="utf-8"))
+    if not isinstance(data, dict):
+        return {}
+    return {key: value for key, value in data.items() if key in RUNTIME_SETTING_KEYS}
+
+
+def save_runtime_settings(overrides: dict[str, Any], settings: Settings | None = None) -> None:
+    active = settings or Settings()
+    path = runtime_settings_path(active)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    current = load_runtime_settings(active)
+    current.update({key: value for key, value in overrides.items() if key in RUNTIME_SETTING_KEYS})
+    path.write_text(json.dumps(current, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def apply_runtime_settings(settings: Settings) -> Settings:
+    for key, value in load_runtime_settings(settings).items():
+        setattr(settings, key, value)
+    return settings
+
+
 @lru_cache
 def get_settings() -> Settings:
     load_dotenv()
-    settings = Settings()
+    settings = apply_runtime_settings(Settings())
     for directory in (
         settings.recordings_dir,
         settings.transcripts_dir,

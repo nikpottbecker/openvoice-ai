@@ -1,0 +1,17 @@
+{
+  "whisper_model": "base",
+  "whisper_language": "de",
+  "record_seconds": 7,
+  "silence_seconds": 1.4,
+  "min_record_seconds": 1.4,
+  "post_playback_wait_seconds": 0.4,
+  "max_turns": 8,
+  "max_llm_rounds_per_call": 10,
+  "llm_provider": "nvidia",
+  "nvidia_model": "meta/llama-3.2-3b-instruct",
+  "openrouter_model": "google/gemini-2.0-flash-lite-001",
+  "openrouter_fallback_model": "openrouter/free",
+  "openrouter_max_tokens": 80,
+  "openrouter_temperature": 0.25,
+  "openrouter_top_p": 0.8
+}

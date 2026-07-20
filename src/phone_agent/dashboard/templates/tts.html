@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-header">
+  <div class="page-title">
+    <h2>Stimme</h2>
+    <p>TTS-Provider, deutsche Stimme, Sprechtempo, Pausen und Telefon-Sprachprobe.</p>
+  </div>
+  <span class="pill">{{ config.provider }}</span>
+</header>
+
+{% if message %}<article class="notice">{{ message }}</article>{% endif %}
+{% if error %}<article class="notice danger-note">{{ error }}</article>{% endif %}
+
+<section class="dashboard-grid">
+  <article class="section-card">
+    <div class="section-head">
+      <h3>Aktive Konfiguration</h3>
+      <span class="badge">Secrets maskiert</span>
+    </div>
+    <div class="section-body">
+      <div class="split"><span>Provider</span><strong>{{ config.provider }}</strong></div>
+      <div class="split"><span>Stimme</span><strong>{{ config.voice }}</strong></div>
+      <div class="split"><span>Fallback</span><strong>{{ config.fallback_voice }}</strong></div>
+      <div class="split"><span>Telefonformat</span><strong>{{ config.output_sample_rate }} Hz PCM WAV</strong></div>
+      <div class="split"><span>Tempo</span><strong>{{ config.length_scale }}</strong></div>
+      <div class="split"><span>Pausen</span><strong>{{ config.sentence_silence }}s</strong></div>
+      <div class="split"><span>Lautstärke</span><strong>{{ config.volume }}</strong></div>
+    </div>
+  </article>
+
+  <article class="section-card">
+    <div class="section-head"><h3>Sprachprobe</h3><span class="badge">Asterisk 8 kHz</span></div>
+    <div class="section-body">
+      {% if sample_url %}
+      <audio controls preload="none" src="{{ sample_url }}"></audio>
+      {% else %}
+      <p class="muted">Noch keine Sprachprobe in dieser Sitzung erzeugt.</p>
+      {% endif %}
+    </div>
+  </article>
+</section>
+
+<article class="section-card">
+  <div class="section-head">
+    <h3>Stimme testen oder speichern</h3>
+    <span class="badge">Manuell</span>
+  </div>
+  <div class="section-body">
+    <form class="edit-form" method="post" action="/tts">
+      <label>
+        Provider
+        <select name="provider">
+          <option value="piper" selected>Piper lokal</option>
+        </select>
+      </label>
+      <label>
+        Stimme
+        <select name="voice">
+          {% for voice in voices %}
+          <option value="{{ voice.voice_id }}" {{ "selected" if voice.voice_id == config.voice else "" }}>{{ voice.voice_id }} · {{ voice.description }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label>
+        Fallback-Stimme
+        <select name="fallback_voice">
+          {% for voice in voices %}
+          <option value="{{ voice.voice_id }}" {{ "selected" if voice.voice_id == config.fallback_voice else "" }}>{{ voice.voice_id }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <section class="grid">
+        <label>Geschwindigkeit / Länge<input name="length_scale" type="number" step="0.01" min="0.75" max="1.45" value="{{ config.length_scale }}"></label>
+        <label>Pausen zwischen Sätzen<input name="sentence_silence" type="number" step="0.01" min="0" max="1.5" value="{{ config.sentence_silence }}"></label>
+        <label>Lautstärke<input name="volume" type="number" step="0.01" min="0.4" max="1.8" value="{{ config.volume }}"></label>
+      </section>
+      <label>
+        Testtext
+        <textarea name="test_text" rows="4">{{ test_text if test_text else "Guten Tag und herzlich willkommen bei OpenVoice AI. Wie kann ich Ihnen helfen?" }}</textarea>
+      </label>
+      <div class="actions">
+        <button type="submit" name="action" value="test">Sprachprobe erzeugen</button>
+        <button class="secondary" type="submit" name="action" value="save" onclick="return confirm('Diese Stimme als Standard speichern? Vorher echte Telefonprobe abhören.');">Standard speichern</button>
+        <span class="muted">Die alte Stimme wird nicht gelöscht und kann als Fallback ausgewählt bleiben.</span>
+      </div>
+    </form>
+  </div>
+</article>
+
+<article class="section-card">
+  <div class="section-head"><h3>Verfügbare Stimmen</h3><span class="badge">{{ voices|length }}</span></div>
+  <div class="section-body">
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Stimme</th><th>Qualität</th><th>Locale</th><th>Hinweis</th></tr></thead>
+        <tbody>
+          {% for voice in voices %}
+          <tr>
+            <td>{{ voice.voice_id }}</td>
+            <td>{{ voice.quality }}</td>
+            <td>{{ voice.locale }}</td>
+            <td>{{ voice.description }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</article>
+{% endblock %}

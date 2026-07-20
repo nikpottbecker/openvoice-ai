@@ -1,0 +1,11 @@
+{
+  "provider": "piper",
+  "voice": "de_DE-thorsten-medium",
+  "fallback_voice": "de_DE-thorsten-medium",
+  "length_scale": 1.0,
+  "noise_scale": 0.667,
+  "noise_w_scale": 0.8,
+  "sentence_silence": 0.22,
+  "volume": 1.0,
+  "output_sample_rate": 8000
+}

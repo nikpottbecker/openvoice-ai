@@ -40,6 +40,8 @@ cd "$APP_DIR"
 cp -n .env.example .env
 cp -n config/agent.system.prompt "$APP_DIR/config/agent.system.prompt"
 cp -n config/phone_menu.example.json "$APP_DIR/config/phone_menu.json"
+cp -n config/tts_settings.example.json "$APP_DIR/config/tts_settings.json"
+cp -n config/runtime_settings.example.json "$APP_DIR/config/runtime_settings.json"
 
 install -m 0755 scripts/healthcheck.sh "$APP_DIR/scripts/healthcheck.sh"
 install -m 0755 scripts/install_piper.sh "$APP_DIR/scripts/install_piper.sh"

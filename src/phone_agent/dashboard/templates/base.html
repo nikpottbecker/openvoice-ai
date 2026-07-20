@@ -10,14 +10,14 @@
 <body>
   {% set nav_groups = [
     ("Betrieb", [("overview","Dashboard","/","Aktueller Zustand"),("live","Live Call","/live","Gespräch in Echtzeit")]),
-    ("Agent", [("menu","Telefonmenü","/menu","DTMF und Sprache"),("ai","KI Provider","/ai","Modelle und Latenz")]),
+    ("Agent", [("menu","Telefonmenü","/menu","DTMF und Sprache"),("tts","Stimme","/tts","TTS und Hörprobe"),("ai","KI Provider","/ai","Modelle und Latenz")]),
     ("Kommunikation", [("history","Gespräche","/history","Audio und Transkripte"),("tasks","Aufgaben","/tasks","Termine und Rückrufe"),("email","E-Mail","/email","Entwürfe und Versand")]),
     ("System", [("logs","Logs","/logs","Fehler und Health"),("settings","Settings","/settings","Read-only Konfig")])
   ] %}
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
       <a class="brand" href="/" aria-label="OpenVoice AI Dashboard">
-        <span class="brand-mark">OV</span>
+        <span class="brand-mark"><img src="/static/img/openvoice-logo.png" alt="" aria-hidden="true"></span>
         <span>
           <strong>OpenVoice AI</strong>
           <small>Communication Platform</small>
@@ -89,6 +89,9 @@
     const closePalette = () => { palette.hidden = true; };
     document.querySelector("[data-command-open]")?.addEventListener("click", openPalette);
     document.querySelector("[data-sidebar-toggle]")?.addEventListener("click", () => document.body.classList.toggle("sidebar-open"));
+    document.querySelectorAll("[data-command-item]").forEach((item) => {
+      item.addEventListener("click", closePalette);
+    });
     palette?.addEventListener("click", (event) => {
       if (event.target === palette) closePalette();
     });

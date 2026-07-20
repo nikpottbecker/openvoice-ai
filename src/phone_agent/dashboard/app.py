@@ -15,10 +15,12 @@ from fastapi.responses import FileResponse, HTMLResponse, PlainTextResponse, Red
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 
-from phone_agent.config import get_settings
+from phone_agent.config import get_settings, load_runtime_settings, save_runtime_settings
 from phone_agent.email.drafts import delete_draft, get_draft, list_drafts, mark_error, mark_sent, update_draft
 from phone_agent.email.smtp_client import send_message
 from phone_agent.menu import HybridAction, default_menu_config, load_menu_config
+from phone_agent.tts import synthesize_with_config
+from phone_agent.tts_config import TTSConfig, available_tts_voices, load_tts_config, save_tts_config, validate_tts_config
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -217,6 +219,92 @@ def logs(request: Request) -> HTMLResponse:
     )
 
 
+@app.get("/tts", response_class=HTMLResponse)
+def tts_page(request: Request) -> HTMLResponse:
+    return templates.TemplateResponse(
+        request,
+        "tts.html",
+        {
+            "active": "tts",
+            "config": load_tts_config(),
+            "voices": available_tts_voices(),
+            "sample_url": "",
+            "message": "",
+            "error": "",
+        },
+    )
+
+
+@app.post("/tts", response_class=HTMLResponse)
+def tts_save(
+    request: Request,
+    provider: str = Form("piper"),
+    voice: str = Form(...),
+    fallback_voice: str = Form(...),
+    length_scale: float = Form(...),
+    sentence_silence: float = Form(...),
+    volume: float = Form(...),
+    test_text: str = Form(""),
+    action: str = Form("save"),
+) -> HTMLResponse:
+    message = ""
+    error = ""
+    sample_url = ""
+    try:
+        config = validate_tts_config(
+            {
+                "provider": provider,
+                "voice": voice,
+                "fallback_voice": fallback_voice,
+                "length_scale": length_scale,
+                "sentence_silence": sentence_silence,
+                "volume": volume,
+            }
+        )
+        if action == "test":
+            text = test_text.strip() or "Guten Tag und herzlich willkommen bei OpenVoice AI. Wie kann ich Ihnen helfen?"
+            sample_dir = get_settings().app_base_dir / "tts_voice_samples"
+            sample_dir.mkdir(parents=True, exist_ok=True)
+            sample_path = sample_dir / "dashboard-test.wav"
+            synthesize_with_config(text, sample_path, config)
+            sample_url = "/tts/sample/dashboard-test.wav"
+            message = "Sprachprobe erzeugt. Bitte über Kopfhörer und Telefonpfad vergleichen."
+            logger.info("tts_sample_generated user=%s voice=%s", _user(request), config.voice)
+        else:
+            save_tts_config(config)
+            message = "TTS-Konfiguration gespeichert. Die alte Stimme bleibt als Fallback erhalten."
+            logger.info("tts_config_saved user=%s voice=%s fallback=%s", _user(request), config.voice, config.fallback_voice)
+    except Exception as exc:
+        config = load_tts_config()
+        error = f"TTS-Konfiguration konnte nicht verarbeitet werden: {exc}"
+        logger.exception("tts_config_failed user=%s", _user(request))
+    return templates.TemplateResponse(
+        request,
+        "tts.html",
+        {
+            "active": "tts",
+            "config": config,
+            "voices": available_tts_voices(),
+            "sample_url": sample_url,
+            "message": message,
+            "error": error,
+            "test_text": test_text,
+        },
+    )
+
+
+@app.get("/tts/sample/{filename}")
+def tts_sample(request: Request, filename: str) -> FileResponse:
+    safe_name = Path(filename).name
+    if safe_name != filename or not re.fullmatch(r"[A-Za-z0-9_.-]+\.wav", filename):
+        return HTMLResponse("Sample not found", status_code=404)
+    path = get_settings().app_base_dir / "tts_voice_samples" / filename
+    if not path.exists() or path.suffix.lower() != ".wav":
+        return HTMLResponse("Sample not found", status_code=404)
+    logger.info("tts_sample_access user=%s file=%s", _user(request), filename)
+    return FileResponse(path, media_type="audio/wav", filename=filename)
+
+
 @app.get("/email", response_class=HTMLResponse)
 def email_page(request: Request) -> HTMLResponse:
     drafts = list_drafts()
@@ -313,7 +401,73 @@ def settings_page(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
         request,
         "settings.html",
-        {"active": "settings", "settings": safe_settings()},
+        {
+            "active": "settings",
+            "settings": safe_settings(),
+            "form": settings_form_data(),
+            "message": "",
+            "error": "",
+        },
+    )
+
+
+@app.post("/settings", response_class=HTMLResponse)
+def settings_save(
+    request: Request,
+    whisper_model: str = Form(...),
+    record_seconds: int = Form(...),
+    silence_seconds: float = Form(...),
+    min_record_seconds: float = Form(...),
+    post_playback_wait_seconds: float = Form(...),
+    max_turns: int = Form(...),
+    max_llm_rounds_per_call: int = Form(...),
+    llm_provider: str = Form(...),
+    nvidia_model: str = Form(...),
+    openrouter_model: str = Form(...),
+    openrouter_fallback_model: str = Form(...),
+    openrouter_max_tokens: int = Form(...),
+    openrouter_temperature: float = Form(...),
+    openrouter_top_p: float = Form(...),
+) -> HTMLResponse:
+    message = ""
+    error = ""
+    try:
+        overrides = validate_runtime_settings(
+            {
+                "whisper_model": whisper_model,
+                "whisper_language": "de",
+                "record_seconds": record_seconds,
+                "silence_seconds": silence_seconds,
+                "min_record_seconds": min_record_seconds,
+                "post_playback_wait_seconds": post_playback_wait_seconds,
+                "max_turns": max_turns,
+                "max_llm_rounds_per_call": max_llm_rounds_per_call,
+                "llm_provider": llm_provider,
+                "nvidia_model": nvidia_model,
+                "openrouter_model": openrouter_model,
+                "openrouter_fallback_model": openrouter_fallback_model,
+                "openrouter_max_tokens": openrouter_max_tokens,
+                "openrouter_temperature": openrouter_temperature,
+                "openrouter_top_p": openrouter_top_p,
+            }
+        )
+        save_runtime_settings(overrides)
+        get_settings.cache_clear()
+        message = "Einstellungen gespeichert. Neue Calls verwenden diese Werte; laufende Gespräche bleiben unverändert."
+        logger.info("runtime_settings_saved user=%s keys=%s", _user(request), ",".join(sorted(overrides)))
+    except Exception as exc:
+        error = f"Einstellungen konnten nicht gespeichert werden: {exc}"
+        logger.exception("runtime_settings_save_failed user=%s", _user(request))
+    return templates.TemplateResponse(
+        request,
+        "settings.html",
+        {
+            "active": "settings",
+            "settings": safe_settings(),
+            "form": settings_form_data(),
+            "message": message,
+            "error": error,
+        },
     )
 
 
@@ -322,19 +476,50 @@ def live_partial(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(request, "partials/live_panel.html", {"live": live_call()})
 
 
+@app.get("/api/status")
+def api_status() -> dict[str, Any]:
+    return {
+        "overview": collect_overview(),
+        "system": system_snapshot(),
+        "asterisk": asterisk_snapshot(),
+        "recordings": recording_storage(),
+    }
+
+
+@app.get("/api/live")
+def api_live() -> dict[str, Any]:
+    return {"live": live_call(), "asterisk": asterisk_snapshot()}
+
+
+@app.get("/api/calls")
+def api_calls(limit: int = 50) -> dict[str, Any]:
+    safe_limit = max(1, min(int(limit), 100))
+    return {"calls": recent_calls(safe_limit)}
+
+
+@app.get("/api/ai")
+def api_ai() -> dict[str, Any]:
+    return collect_ai()
+
+
 def collect_overview() -> dict[str, Any]:
     settings = get_settings()
     calls = recent_calls(20)
+    system = system_snapshot()
+    asterisk = asterisk_snapshot()
     return {
-        "live_status": "online",
-        "sip_status": sip_status(),
-        "agent_status": service_state("asterisk"),
-        "cpu": psutil.cpu_percent(interval=0.1),
-        "ram": psutil.virtual_memory().percent,
+        "live_status": dashboard_status(asterisk),
+        "sip_status": asterisk["sip_registration"],
+        "agent_status": asterisk["service"],
+        "asterisk_channels": asterisk["channels"],
+        "cpu": system["cpu_percent"],
+        "ram": system["ram_percent"],
+        "disk": system["disk_percent"],
         "model": settings.whisper_model,
         "provider": settings.llm_provider,
         "last_call": calls[0] if calls else None,
         "avg_response": average_response_time(),
+        "data_source": "live system, logs, transcripts, recordings",
     }
 
 
@@ -362,7 +547,7 @@ def recent_calls(limit: int) -> list[dict[str, Any]]:
     settings = get_settings()
     calls = []
     for path in sorted(settings.transcripts_dir.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
-        if path.name.startswith("sim-"):
+        if not is_real_call_id(path.stem):
             continue
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
@@ -436,15 +621,94 @@ def collect_ai() -> dict[str, Any]:
 
 def safe_settings() -> dict[str, str]:
     settings = get_settings()
+    tts_config = load_tts_config()
     return {
         "STT": f"{settings.whisper_model}, {settings.whisper_language}, record={settings.record_seconds}s, silence={settings.silence_seconds}s",
-        "TTS": f"{settings.piper_model.name}",
+        "TTS": f"{tts_config.provider}, voice={tts_config.voice}, fallback={tts_config.fallback_voice}",
         "SIP": sip_status(),
-        "Cloudflare": "Access required by dashboard middleware; tunnel service checked separately",
+        "Cloudflare": cloudflared_status(),
         "Mail": f"SMTP={mask_host(settings.smtp_host)}, IMAP={mask_host(settings.imap_host)}, from={mask_email(settings.mail_from)}",
         "n8n": "configured" if settings.n8n_webhook_url else "not configured",
         "Google Calendar": "managed in n8n",
     }
+
+
+def settings_form_data() -> dict[str, Any]:
+    settings = get_settings()
+    overrides = load_runtime_settings(settings)
+    return {
+        "whisper_models": ["tiny", "base", "small", "medium", "large-v3", "large-v3-turbo"],
+        "llm_providers": ["nvidia", "openrouter"],
+        "overrides": overrides,
+        "values": {
+            "whisper_model": settings.whisper_model,
+            "record_seconds": settings.record_seconds,
+            "silence_seconds": settings.silence_seconds,
+            "min_record_seconds": settings.min_record_seconds,
+            "post_playback_wait_seconds": settings.post_playback_wait_seconds,
+            "max_turns": settings.max_turns,
+            "max_llm_rounds_per_call": settings.max_llm_rounds_per_call,
+            "llm_provider": settings.llm_provider,
+            "nvidia_model": settings.nvidia_model,
+            "openrouter_model": settings.openrouter_model,
+            "openrouter_fallback_model": settings.openrouter_fallback_model,
+            "openrouter_max_tokens": settings.openrouter_max_tokens,
+            "openrouter_temperature": settings.openrouter_temperature,
+            "openrouter_top_p": settings.openrouter_top_p,
+        },
+    }
+
+
+def validate_runtime_settings(data: dict[str, Any]) -> dict[str, Any]:
+    whisper_model = str(data["whisper_model"]).strip()
+    if whisper_model not in {"tiny", "base", "small", "medium", "large-v3", "large-v3-turbo"}:
+        raise ValueError("Ungültiges STT-Modell")
+    provider = str(data["llm_provider"]).strip()
+    if provider not in {"nvidia", "openrouter"}:
+        raise ValueError("Ungültiger LLM-Provider")
+    values = {
+        "whisper_model": whisper_model,
+        "whisper_language": "de",
+        "record_seconds": _bounded_int(data["record_seconds"], 3, 30, "record_seconds"),
+        "silence_seconds": _bounded_float(data["silence_seconds"], 0.5, 5.0, "silence_seconds"),
+        "min_record_seconds": _bounded_float(data["min_record_seconds"], 0.0, 5.0, "min_record_seconds"),
+        "post_playback_wait_seconds": _bounded_float(data["post_playback_wait_seconds"], 0.0, 3.0, "post_playback_wait_seconds"),
+        "max_turns": _bounded_int(data["max_turns"], 1, 20, "max_turns"),
+        "max_llm_rounds_per_call": _bounded_int(data["max_llm_rounds_per_call"], 1, 10, "max_llm_rounds_per_call"),
+        "llm_provider": provider,
+        "nvidia_model": _safe_model_name(data["nvidia_model"], "nvidia_model"),
+        "openrouter_model": _safe_model_name(data["openrouter_model"], "openrouter_model"),
+        "openrouter_fallback_model": _safe_model_name(data["openrouter_fallback_model"], "openrouter_fallback_model"),
+        "openrouter_max_tokens": _bounded_int(data["openrouter_max_tokens"], 1, 80, "openrouter_max_tokens"),
+        "openrouter_temperature": _bounded_float(data["openrouter_temperature"], 0.0, 1.0, "openrouter_temperature"),
+        "openrouter_top_p": _bounded_float(data["openrouter_top_p"], 0.1, 1.0, "openrouter_top_p"),
+    }
+    if values["min_record_seconds"] > values["record_seconds"]:
+        raise ValueError("Mindestaufnahme darf nicht länger als RECORD_SECONDS sein")
+    return values
+
+
+def _bounded_int(value: Any, minimum: int, maximum: int, name: str) -> int:
+    number = int(value)
+    if number < minimum or number > maximum:
+        raise ValueError(f"{name} muss zwischen {minimum} und {maximum} liegen")
+    return number
+
+
+def _bounded_float(value: Any, minimum: float, maximum: float, name: str) -> float:
+    number = float(value)
+    if number < minimum or number > maximum:
+        raise ValueError(f"{name} muss zwischen {minimum} und {maximum} liegen")
+    return number
+
+
+def _safe_model_name(value: Any, name: str) -> str:
+    text = str(value or "").strip()
+    if not text or len(text) > 120:
+        raise ValueError(f"{name} ist ungültig")
+    if not re.fullmatch(r"[A-Za-z0-9._:/+-]+", text):
+        raise ValueError(f"{name} enthält ungültige Zeichen")
+    return text
 
 
 def mask_email(value: str) -> str:
@@ -462,20 +726,92 @@ def _user(request: Request) -> str:
     return getattr(request.state, "user_email", "unknown")
 
 
+def system_snapshot() -> dict[str, Any]:
+    memory = psutil.virtual_memory()
+    disk = psutil.disk_usage(str(get_settings().app_base_dir))
+    boot = datetime.fromtimestamp(psutil.boot_time()).isoformat(timespec="seconds")
+    return {
+        "cpu_percent": psutil.cpu_percent(interval=0.1),
+        "ram_percent": memory.percent,
+        "ram_used": human_size(memory.used),
+        "ram_total": human_size(memory.total),
+        "disk_percent": disk.percent,
+        "disk_used": human_size(disk.used),
+        "disk_total": human_size(disk.total),
+        "boot_time": boot,
+    }
+
+
+def asterisk_snapshot() -> dict[str, Any]:
+    channels_raw = run(["asterisk", "-rx", "core show channels"])
+    return {
+        "service": service_state("asterisk"),
+        "sip_registration": sip_status(),
+        "channels": parse_asterisk_channels(channels_raw),
+        "channels_raw": channels_raw.strip(),
+        "cloudflared": cloudflared_status(),
+    }
+
+
+def dashboard_status(asterisk: dict[str, Any]) -> str:
+    if asterisk["channels"].get("active_calls", 0) > 0:
+        return "active call"
+    if asterisk["service"] in {"active", "unknown"}:
+        return "online"
+    return "degraded"
+
+
 def sip_status() -> str:
     out = run(["asterisk", "-rx", "pjsip show registrations"])
-    return "Registered" if "Registered" in out else "Not registered"
+    lowered = out.lower()
+    if not out.strip() or "not found" in lowered or "no such file" in lowered or "winerror 2" in lowered:
+        return "unknown"
+    if "registered" in lowered:
+        return "Registered"
+    if "rejected" in lowered:
+        return "Rejected"
+    if "no objects found" in lowered or "unregistered" in lowered:
+        return "Not registered"
+    return "unknown"
 
 
 def service_state(name: str) -> str:
-    return run(["systemctl", "is-active", name]).strip() or "unknown"
+    out = run(["systemctl", "is-active", name]).strip()
+    lowered = out.lower()
+    if not out or "not found" in lowered or "no such file" in lowered or "winerror 2" in lowered:
+        return "unknown"
+    return out.splitlines()[0]
+
+
+def cloudflared_status() -> str:
+    out = service_state("cloudflared")
+    if out != "unknown":
+        return out
+    process_names = {proc.info.get("name", "").lower() for proc in psutil.process_iter(["name"])}
+    return "running" if any("cloudflared" in name for name in process_names) else "unknown"
+
+
+def parse_asterisk_channels(raw: str) -> dict[str, Any]:
+    text = raw.strip()
+    lowered = text.lower()
+    if not text or "not found" in lowered or "no such file" in lowered or "winerror 2" in lowered:
+        return {"active_channels": 0, "active_calls": 0, "summary": "unknown"}
+    channels = extract_regex(text, r"(\d+)\s+active channels?")
+    calls = extract_regex(text, r"(\d+)\s+active calls?")
+    return {
+        "active_channels": int(channels) if channels else 0,
+        "active_calls": int(calls) if calls else 0,
+        "summary": last_matching(text.splitlines(), "active calls") or text.splitlines()[-1],
+    }
 
 
 def latest_call_id() -> str | None:
     ids = []
     for line in tail(get_settings().logs_dir / "phone-agent.log", 1000):
         if "call_started call_id=" in line and "call_id=sim-" not in line:
-            ids.append(extract_regex(line, r"call_id=([^ ]+)"))
+            call_id = extract_regex(line, r"call_id=([^ ]+)")
+            if is_real_call_id(call_id):
+                ids.append(call_id)
     return ids[-1] if ids else None
 
 
@@ -492,7 +828,8 @@ def tail(path: Path, lines: int) -> list[str]:
 
 def run(cmd: list[str]) -> str:
     try:
-        return subprocess.run(cmd, check=False, text=True, capture_output=True, timeout=6).stdout
+        result = subprocess.run(cmd, check=False, text=True, capture_output=True, timeout=6)
+        return result.stdout or result.stderr
     except Exception as exc:
         return str(exc)
 
@@ -595,6 +932,13 @@ def menu_config_json(default: bool = False) -> str:
 
 def valid_id(value: str) -> bool:
     return bool(re.fullmatch(r"[A-Za-z0-9_.-]+", value))
+
+
+def is_real_call_id(call_id: str) -> bool:
+    if not valid_id(call_id):
+        return False
+    lowered = call_id.lower()
+    return not lowered.startswith(("sim-", "test-", "demo-", "sample-"))
 
 
 def average_response_time() -> str:

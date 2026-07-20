@@ -19,6 +19,7 @@ logs/
 recordings/
 transcripts/
 data/
+tts_voice_comparison/
 *.db
 *.sqlite
 *.sqlite3

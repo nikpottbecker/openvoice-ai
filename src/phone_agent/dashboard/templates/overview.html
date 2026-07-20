@@ -11,8 +11,11 @@
 <section class="metric-grid">
   <div class="tile"><span>SIP</span><strong>{{ overview.sip_status }}</strong></div>
   <div class="tile"><span>Agent</span><strong>{{ overview.agent_status }}</strong></div>
+  <div class="tile"><span>Asterisk Calls</span><strong>{{ overview.asterisk_channels.active_calls }}</strong></div>
+  <div class="tile"><span>Asterisk Kanäle</span><strong>{{ overview.asterisk_channels.active_channels }}</strong></div>
   <div class="tile"><span>CPU</span><strong>{{ overview.cpu }}%</strong></div>
   <div class="tile"><span>RAM</span><strong>{{ overview.ram }}%</strong></div>
+  <div class="tile"><span>Disk</span><strong>{{ overview.disk }}%</strong></div>
   <div class="tile"><span>STT Modell</span><strong>{{ overview.model }}</strong></div>
   <div class="tile"><span>Provider</span><strong>{{ overview.provider }}</strong></div>
   <div class="tile"><span>Letzter Anruf</span><strong>{{ overview.last_call.phone if overview.last_call else "n/a" }}</strong></div>
@@ -38,7 +41,9 @@
       <div class="split"><span>Aktives STT Modell</span><strong>{{ overview.model }}</strong></div>
       <div class="split"><span>LLM Provider</span><strong>{{ overview.provider }}</strong></div>
       <div class="split"><span>SIP Registrierung</span><strong>{{ overview.sip_status }}</strong></div>
+      <div class="split"><span>Asterisk Channels</span><strong>{{ overview.asterisk_channels.summary }}</strong></div>
       <div class="split"><span>Durchschnittliche Antwortzeit</span><strong>{{ overview.avg_response }}</strong></div>
+      <div class="split"><span>Datenquelle</span><strong>{{ overview.data_source }}</strong></div>
     </div>
   </article>
 </section>

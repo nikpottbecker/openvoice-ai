@@ -3,10 +3,87 @@
 <header class="page-header">
   <div class="page-title">
     <h2>Settings</h2>
-    <p>Maskierte Konfiguration für STT, TTS, SIP, Cloudflare, Mail und Automationen.</p>
+    <p>Operative Einstellungen für neue Anrufe. Secrets bleiben ausschließlich in der `.env`.</p>
   </div>
-  <span class="pill">Read only</span>
+  <span class="pill">Interaktiv</span>
 </header>
+
+{% if message %}<article class="notice">{{ message }}</article>{% endif %}
+{% if error %}<article class="notice danger-note">{{ error }}</article>{% endif %}
+
+<form class="edit-form" method="post" action="/settings">
+  <section class="dashboard-grid">
+    <article class="section-card">
+      <div class="section-head">
+        <h3>Speech-to-Text</h3>
+        <span class="badge">Deutsch</span>
+      </div>
+      <div class="section-body">
+        <label>
+          Whisper-Modell
+          <select name="whisper_model">
+            {% for model in form.whisper_models %}
+            <option value="{{ model }}" {{ "selected" if form.values.whisper_model == model else "" }}>{{ model }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <section class="grid">
+          <label>RECORD_SECONDS<input name="record_seconds" type="number" min="3" max="30" step="1" value="{{ form.values.record_seconds }}"></label>
+          <label>SILENCE_SECONDS<input name="silence_seconds" type="number" min="0.5" max="5" step="0.1" value="{{ form.values.silence_seconds }}"></label>
+          <label>MIN_RECORD_SECONDS<input name="min_record_seconds" type="number" min="0" max="5" step="0.1" value="{{ form.values.min_record_seconds }}"></label>
+          <label>POST_PLAYBACK_WAIT<input name="post_playback_wait_seconds" type="number" min="0" max="3" step="0.1" value="{{ form.values.post_playback_wait_seconds }}"></label>
+        </section>
+      </div>
+    </article>
+
+    <article class="section-card">
+      <div class="section-head">
+        <h3>Conversation Limits</h3>
+        <span class="badge">Kostenkontrolle</span>
+      </div>
+      <div class="section-body">
+        <section class="grid">
+          <label>Max. Turns<input name="max_turns" type="number" min="1" max="20" step="1" value="{{ form.values.max_turns }}"></label>
+          <label>Max. LLM-Runden<input name="max_llm_rounds_per_call" type="number" min="1" max="10" step="1" value="{{ form.values.max_llm_rounds_per_call }}"></label>
+        </section>
+      </div>
+    </article>
+  </section>
+
+  <article class="section-card">
+    <div class="section-head">
+      <h3>KI Provider</h3>
+      <span class="badge">Keine API-Keys</span>
+    </div>
+    <div class="section-body">
+      <label>
+        Aktiver Provider
+        <select name="llm_provider">
+          {% for provider in form.llm_providers %}
+          <option value="{{ provider }}" {{ "selected" if form.values.llm_provider == provider else "" }}>{{ provider }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <section class="grid">
+        <label>NVIDIA Modell<input name="nvidia_model" value="{{ form.values.nvidia_model }}"></label>
+        <label>OpenRouter Modell<input name="openrouter_model" value="{{ form.values.openrouter_model }}"></label>
+        <label>OpenRouter Fallback<input name="openrouter_fallback_model" value="{{ form.values.openrouter_fallback_model }}"></label>
+        <label>Max Tokens<input name="openrouter_max_tokens" type="number" min="1" max="80" step="1" value="{{ form.values.openrouter_max_tokens }}"></label>
+        <label>Temperature<input name="openrouter_temperature" type="number" min="0" max="1" step="0.01" value="{{ form.values.openrouter_temperature }}"></label>
+        <label>Top P<input name="openrouter_top_p" type="number" min="0.1" max="1" step="0.01" value="{{ form.values.openrouter_top_p }}"></label>
+      </section>
+    </div>
+  </article>
+
+  <div class="actions">
+    <button type="submit" onclick="return confirm('Einstellungen speichern? Neue Anrufe verwenden danach diese Werte.');">Einstellungen speichern</button>
+    <a class="button secondary" href="/tts">Stimme einstellen</a>
+    <a class="button secondary" href="/menu">Telefonmenü einstellen</a>
+    <span class="muted">API-Keys, SMTP- und SIP-Passwörter werden hier nicht angezeigt oder geändert.</span>
+  </div>
+</form>
+
+<h3>Aktuelle maskierte Konfiguration</h3>
 <section class="metric-grid">
 {% for key,value in settings.items() %}
   <div class="tile wide"><span>{{ key }}</span><strong>{{ value }}</strong></div>
