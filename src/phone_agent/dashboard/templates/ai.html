@@ -1,13 +1,24 @@
 {% extends "base.html" %}
 {% block content %}
-<header><h2>KI</h2></header>
-<section class="grid">
+<header class="page-header">
+  <div class="page-title">
+    <h2>KI Provider</h2>
+    <p>Modelle, Provider, Antwortzeiten und Token-/Kostenlog ohne Secrets.</p>
+  </div>
+  <span class="pill">{{ ai.provider }}</span>
+</header>
+<section class="metric-grid">
   <div class="tile"><span>NVIDIA Modell</span><strong>{{ ai.nvidia_model }}</strong></div>
   <div class="tile"><span>OpenRouter</span><strong>{{ ai.openrouter_status }}</strong></div>
   <div class="tile"><span>Provider</span><strong>{{ ai.provider }}</strong></div>
   <div class="tile"><span>Antwortzeiten</span><strong>{{ ai.avg_llm if ai.avg_llm else "n/a" }}s</strong></div>
   <div class="tile"><span>Kosten</span><strong>{{ ai.cost }}</strong></div>
 </section>
-<h3>Token/Provider Logs</h3>
-<pre>{{ "\n".join(ai.usage) }}</pre>
+<article class="section-card">
+  <div class="section-head">
+    <h3>Token und Provider Logs</h3>
+    <span class="badge">{{ ai.usage|length }} Events</span>
+  </div>
+  <div class="section-body"><pre>{{ "\n".join(ai.usage) }}</pre></div>
+</article>
 {% endblock %}

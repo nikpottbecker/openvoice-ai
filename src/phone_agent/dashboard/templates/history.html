@@ -1,5 +1,19 @@
 {% extends "base.html" %}
 {% block content %}
-<header><h2>Gespraechshistorie</h2><span class="pill">Speicher: {{ storage.used }} · {{ storage.retention }}</span></header>
-{% include "partials/call_table.html" %}
+<header class="page-header">
+  <div class="page-title">
+    <h2>Gespräche</h2>
+    <p>Historie mit Audio, Transkript, Zusammenfassung und Status.</p>
+  </div>
+  <span class="pill">Speicher: {{ storage.used }} · {{ storage.retention }}</span>
+</header>
+<article class="section-card">
+  <div class="section-head">
+    <h3>Call History</h3>
+    <span class="badge">{{ calls|length }} Einträge</span>
+  </div>
+  <div class="section-body">
+    {% include "partials/call_table.html" %}
+  </div>
+</article>
 {% endblock %}

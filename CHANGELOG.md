@@ -2,6 +2,19 @@
 
 All notable changes to OpenVoice AI will be documented in this file.
 
+## 0.1.1 - 2026-07-20
+
+Preview patch release focused on call quality, observability and dashboard polish.
+
+- Add hybrid DTMF and speech phone menu flows for faster deterministic call handling.
+- Improve German conversation state handling for appointments, callbacks, names, dates, times and confirmations.
+- Add benchmark tooling and tests for real-call conversation flows, STT audio quality diagnostics and call timing analysis.
+- Improve STT runtime behavior with German fixed-language transcription, empty-transcript small-model retry and real-call benchmark discovery for per-call recording directories.
+- Add recording quality logging for duration, sample rate, channels, RMS, peak and clipping flags.
+- Redesign the FastAPI dashboard shell with grouped navigation, responsive layout, command palette, modern cards and safer read-only operational views.
+- Add dashboard render tests and broaden automated coverage for AGI, mail, LLM post-processing, hybrid menu and STT audit helpers.
+- Keep the release in preview / early alpha status; real production quality still depends on live-call STT benchmarks with human reference transcripts.
+
 ## 0.1.0 - 2026-07-03
 
 Initial preview / early alpha.

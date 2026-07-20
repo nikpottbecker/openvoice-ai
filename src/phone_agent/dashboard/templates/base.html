@@ -3,21 +3,108 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>OpenVoice AI Dashboard</title>
+  <title>{% block title %}OpenVoice AI{% endblock %}</title>
   <link rel="stylesheet" href="/static/app.css">
   <script src="https://unpkg.com/htmx.org@1.9.12"></script>
 </head>
 <body>
-  <aside>
-    <h1>OpenVoice AI</h1>
-    <nav>
-      {% for key,label in [("overview","Uebersicht"),("live","Live Calls"),("history","Historie"),("tasks","Termine"),("email","E-Mail"),("logs","Logs"),("ai","KI"),("settings","Einstellungen")] %}
-      <a class="{{ 'active' if active == key else '' }}" href="{{ '/' if key == 'overview' else '/' + key }}">{{ label }}</a>
-      {% endfor %}
-    </nav>
-  </aside>
-  <main>
-    {% block content %}{% endblock %}
-  </main>
+  {% set nav_groups = [
+    ("Betrieb", [("overview","Dashboard","/","Aktueller Zustand"),("live","Live Call","/live","Gespräch in Echtzeit")]),
+    ("Agent", [("menu","Telefonmenü","/menu","DTMF und Sprache"),("ai","KI Provider","/ai","Modelle und Latenz")]),
+    ("Kommunikation", [("history","Gespräche","/history","Audio und Transkripte"),("tasks","Aufgaben","/tasks","Termine und Rückrufe"),("email","E-Mail","/email","Entwürfe und Versand")]),
+    ("System", [("logs","Logs","/logs","Fehler und Health"),("settings","Settings","/settings","Read-only Konfig")])
+  ] %}
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="/" aria-label="OpenVoice AI Dashboard">
+        <span class="brand-mark">OV</span>
+        <span>
+          <strong>OpenVoice AI</strong>
+          <small>Communication Platform</small>
+        </span>
+      </a>
+      <nav class="nav" aria-label="Hauptnavigation">
+        {% for group, links in nav_groups %}
+        <section class="nav-section">
+          <p>{{ group }}</p>
+          {% for key,label,href,desc in links %}
+          <a class="nav-link {{ 'active' if active == key else '' }}" href="{{ href }}">
+            <span>{{ label }}</span>
+            <small>{{ desc }}</small>
+          </a>
+          {% endfor %}
+        </section>
+        {% endfor %}
+      </nav>
+      <div class="sidebar-footer">
+        <span class="status-dot ok"></span>
+        <span>Cloudflare Access geschützt</span>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <button class="icon-button mobile-only" type="button" data-sidebar-toggle aria-label="Navigation öffnen">☰</button>
+        <button class="command-trigger" type="button" data-command-open>
+          <span>Suchen oder Seite öffnen</span>
+          <kbd>Ctrl K</kbd>
+        </button>
+        <div class="topbar-actions">
+          <span class="environment-pill"><span class="status-dot ok"></span>Protected</span>
+          <span class="user-pill">{{ request.state.user_email if request.state.user_email else "local" }}</span>
+        </div>
+      </header>
+
+      <main class="content">
+        {% block content %}{% endblock %}
+      </main>
+    </div>
+  </div>
+
+  <div class="command-palette" data-command-palette hidden>
+    <div class="command-dialog" role="dialog" aria-modal="true" aria-label="Dashboard Suche">
+      <input class="command-input" type="search" placeholder="Seite suchen..." data-command-input>
+      <div class="command-list">
+        {% for group, links in nav_groups %}
+          {% for key,label,href,desc in links %}
+          <a href="{{ href }}" data-command-item>
+            <strong>{{ label }}</strong>
+            <span>{{ desc }}</span>
+          </a>
+          {% endfor %}
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const palette = document.querySelector("[data-command-palette]");
+    const commandInput = document.querySelector("[data-command-input]");
+    const openPalette = () => {
+      palette.hidden = false;
+      commandInput.value = "";
+      document.querySelectorAll("[data-command-item]").forEach((item) => item.hidden = false);
+      commandInput.focus();
+    };
+    const closePalette = () => { palette.hidden = true; };
+    document.querySelector("[data-command-open]")?.addEventListener("click", openPalette);
+    document.querySelector("[data-sidebar-toggle]")?.addEventListener("click", () => document.body.classList.toggle("sidebar-open"));
+    palette?.addEventListener("click", (event) => {
+      if (event.target === palette) closePalette();
+    });
+    commandInput?.addEventListener("input", () => {
+      const query = commandInput.value.toLowerCase();
+      document.querySelectorAll("[data-command-item]").forEach((item) => {
+        item.hidden = !item.textContent.toLowerCase().includes(query);
+      });
+    });
+    window.addEventListener("keydown", (event) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        openPalette();
+      }
+      if (event.key === "Escape") closePalette();
+    });
+  </script>
 </body>
 </html>

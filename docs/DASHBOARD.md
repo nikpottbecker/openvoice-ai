@@ -7,6 +7,13 @@
 - Healthcheck: `http://127.0.0.1:8088/healthz`
 - Dashboard blockiert direkte Aufrufe ohne Cloudflare-Access-Header mit `403`.
 
+## Telefonmenue
+
+- Seite: `/menu`
+- Zweck: DTMF-/Sprachmenue anzeigen, JSON-Konfiguration validieren und speichern
+- Secrets: keine API-Keys, SIP-Passwoerter oder Tokens in der Menuekonfiguration speichern
+- Neue Anrufe laden `config/phone_menu.json` automatisch.
+
 ## Cloudflare Tunnel
 
 Der bestehende Tunnel laeuft auf dem Proxmox-Host als tokenbasierter `cloudflared`-Service.

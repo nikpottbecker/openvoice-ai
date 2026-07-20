@@ -14,7 +14,7 @@ import psutil
 from faster_whisper import WhisperModel
 
 from .config import get_settings
-from .stt import _prepare_audio
+from .stt import _prepare_audio, _resolve_local_model
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +66,11 @@ def run_whisper_model(prepared_wav: Path, model_name: str) -> dict[str, Any]:
     rss_before = proc.memory_info().rss
     start = time.perf_counter()
     try:
-        model = WhisperModel(model_name, device=get_settings().whisper_device, compute_type=get_settings().whisper_compute_type)
+        model = WhisperModel(
+            _resolve_local_model(model_name),
+            device=get_settings().whisper_device,
+            compute_type=get_settings().whisper_compute_type,
+        )
         segments, info = model.transcribe(
             str(prepared_wav),
             language="de",
@@ -188,20 +192,41 @@ def hardware_info() -> dict[str, Any]:
 
 def latest_real_call_id() -> str | None:
     settings = get_settings()
-    ids = []
-    for path in settings.recordings_dir.glob("*.wav"):
-        if path.name.startswith("sim-") or "-reply" in path.name or ".stt" in path.name:
+    ids: list[tuple[float, str]] = []
+    for path in settings.recordings_dir.glob("*"):
+        if path.name.startswith("sim-"):
             continue
-        ids.append((path.stat().st_mtime, path.name.split("-", 1)[0]))
+        if path.is_dir():
+            wavs = _recording_wavs_for_call(path.name)
+            if wavs:
+                ids.append((max(wav.stat().st_mtime for wav in wavs), path.name))
+            continue
+        if _is_real_call_wav(path):
+            ids.append((path.stat().st_mtime, path.name.split("-", 1)[0]))
     return sorted(ids)[-1][1] if ids else None
 
 
 def real_call_wavs(call_id: str) -> list[Path]:
+    return sorted(path.resolve() for path in _recording_wavs_for_call(call_id))
+
+
+def _recording_wavs_for_call(call_id: str) -> list[Path]:
     settings = get_settings()
     candidates = list((settings.recordings_dir / call_id).glob(f"{call_id}-*.wav"))
     candidates.extend(settings.recordings_dir.glob(f"{call_id}-*.wav"))
-    return sorted(
-        {path.resolve() for path in candidates if ".stt" not in path.name and "-reply" not in path.name}
+    return sorted({path.resolve() for path in candidates if _is_real_call_wav(path)})
+
+
+def _is_real_call_wav(path: Path) -> bool:
+    if path.suffix.lower() != ".wav":
+        return False
+    name = path.name
+    return not (
+        name.startswith("sim-")
+        or ".stt" in name
+        or "-reply" in name
+        or "-min" in name
+        or "-tail" in name
     )
 
 

@@ -33,6 +33,7 @@ transport=transport-udp
 context=from-fritzbox
 disallow=all
 allow=alaw,ulaw
+dtmf_mode=rfc4733
 outbound_auth=fritzbox-auth
 aors=fritzbox-aor
 direct_media=no

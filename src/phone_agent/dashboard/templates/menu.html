@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block content %}
+<header class="page-header">
+  <div class="page-title">
+    <h2>Telefonmenü</h2>
+    <p>Hybride Steuerung aus DTMF-Tasten und Sprachintents.</p>
+  </div>
+  <span class="pill">{{ menu.items|length }} Einträge</span>
+</header>
+
+{% if message %}<article class="notice">{{ message }}</article>{% endif %}
+{% if error %}<article class="notice danger-note">{{ error }}</article>{% endif %}
+
+<section class="dashboard-grid">
+  <article class="section-card">
+    <div class="section-head">
+      <h3>Aktive Ansage</h3>
+      <span class="badge">Hybrid</span>
+    </div>
+    <div class="section-body">
+      <p>{{ menu.prompt }}</p>
+      <div class="split"><span>Timeout</span><strong>{{ menu.timeout_prompt }}</strong></div>
+      <div class="split"><span>Ungültig</span><strong>{{ menu.invalid_prompt }}</strong></div>
+      <div class="split"><span>Max. Wiederholungen</span><strong>{{ menu.max_retries }}</strong></div>
+    </div>
+  </article>
+  <article class="section-card">
+    <div class="section-head"><h3>DTMF-Regeln</h3><span class="badge">No LLM</span></div>
+    <div class="section-body">
+      <p class="muted">Tasten werden auf dieselben Actions gemappt wie gesprochene Intents. So bleiben Menüpfade deterministisch und schnell.</p>
+    </div>
+  </article>
+</section>
+
+<article class="section-card">
+  <div class="section-head"><h3>Tastenbelegung</h3><span class="badge">{{ menu.items|length }} Optionen</span></div>
+  <div class="section-body">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Taste</th>
+            <th>Aktion</th>
+            <th>Label</th>
+            <th>Sprachalternativen</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in menu.items %}
+          <tr>
+            <td><strong>{{ item.key }}</strong></td>
+            <td>{{ item.action.value }}</td>
+            <td>{{ item.label }}</td>
+            <td>{{ item.speech|join(", ") }}</td>
+            <td><span class="badge">{{ "aktiv" if item.enabled else "inaktiv" }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</article>
+
+<article class="section-card">
+  <div class="section-head"><h3>Konfiguration</h3><span class="badge">JSON</span></div>
+  <div class="section-body">
+    <form class="edit-form" method="post" action="/menu">
+      <label>
+        JSON
+        <textarea name="config_json" rows="22" spellcheck="false">{{ config_json }}</textarea>
+      </label>
+      <div class="actions">
+        <button type="submit" onclick="return confirm('Telefonmenü wirklich speichern? Neue Anrufe laden danach diese Konfiguration.')">Speichern</button>
+        <span class="muted">Keine Secrets eintragen. API-Keys und SIP-Passwörter gehören nicht hierher.</span>
+      </div>
+    </form>
+  </div>
+</article>
+{% endblock %}

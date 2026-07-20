@@ -14,18 +14,38 @@ logger = logging.getLogger(__name__)
 
 
 def _infer_intent(result: LLMResult, user_text: str) -> LLMResult:
-    text = " ".join([user_text, result.reply, result.summary]).lower()
+    text = _normalize_german(" ".join([user_text, result.reply, result.summary]))
     if result.intent == "unknown" and any(word in text for word in ("termin", "vereinbaren", "kalender", "uhr")):
         result.intent = "appointment"
-    if result.intent == "unknown" and any(word in text for word in ("rückruf", "rueckruf", "zurückrufen", "zurueckrufen")):
+    if result.intent == "unknown" and any(word in text for word in ("rueckruf", "zurueckrufen")):
         result.intent = "callback"
     if result.intent == "unknown" and any(word in text for word in ("spam", "werbung", "angebot")):
         result.intent = "spam"
     if result.intent == "appointment":
-        generic = result.reply.lower().strip() in {"hallo!", "hallo.", "hallo, ich bin niks telefonassistent."}
+        generic = _normalize_german(result.reply).strip() in {
+            "hallo!",
+            "hallo.",
+            "hallo, ich bin niks telefonassistent.",
+            "wie kann ich ihnen helfen?",
+        }
         if generic or not result.appointment.name:
             result.reply = "Gerne. Wie ist Ihr Name?"
     return result
+
+
+def _normalize_german(text: str) -> str:
+    if "\u00c3" in text or "\u00c2" in text:
+        try:
+            text = text.encode("latin1").decode("utf-8")
+        except UnicodeError:
+            pass
+    return (
+        text.lower()
+        .replace("\u00e4", "ae")
+        .replace("\u00f6", "oe")
+        .replace("\u00fc", "ue")
+        .replace("\u00df", "ss")
+    )
 
 
 def _parse_llm_result(content: str, state: AgentState) -> LLMResult:

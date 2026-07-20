@@ -7,6 +7,12 @@
 *.crt
 *.p12
 *.pfx
+proxmox_vnc_*.py
+proxmox_ws_test.py
+webstudio-api-*.txt
+webstudio-hook.sh
+webstudio-vmid.txt
+webstudio_remote_install.sh
 
 # Runtime data
 logs/

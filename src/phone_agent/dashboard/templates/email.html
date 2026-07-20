@@ -1,25 +1,45 @@
 {% extends "base.html" %}
 {% block content %}
-<header><h2>E-Mail</h2><span class="pill">Extern nur manuell</span></header>
-<section class="panel">
-  <h3>Testmail manuell senden</h3>
-  <form method="post" action="/email/test-send" onsubmit="return confirm('Testmail jetzt wirklich senden?');" class="inline-form">
-    <input name="recipient" type="email" required placeholder="Empfaenger">
-    <button type="submit">Testmail senden</button>
-  </form>
-</section>
+<header class="page-header">
+  <div class="page-title">
+    <h2>E-Mail</h2>
+    <p>Interne Zusammenfassungen und externe Entwürfe mit manueller Freigabe.</p>
+  </div>
+  <span class="pill">Extern nur manuell</span>
+</header>
 
-<h2>Intern</h2>
+<article class="section-card">
+  <div class="section-head">
+    <h3>Testmail</h3>
+    <span class="badge">Manuell</span>
+  </div>
+  <div class="section-body">
+    <form method="post" action="/email/test-send" onsubmit="return confirm('Testmail jetzt wirklich senden?');" class="inline-form">
+      <input name="recipient" type="email" required placeholder="Empfänger">
+      <button type="submit">Testmail senden</button>
+    </form>
+  </div>
+</article>
+
+<h3>Intern</h3>
 {% for status,label in [("internal_sent","Gesendet"),("internal_failed","Fehlgeschlagen")] %}
-<h3>{{ label }}</h3>
-{% set rows = groups[status] %}
-{% include "partials/email_table.html" %}
+<article class="section-card">
+  <div class="section-head"><h3>{{ label }}</h3><span class="badge">{{ groups[status]|length }}</span></div>
+  <div class="section-body">
+    {% set rows = groups[status] %}
+    {% include "partials/email_table.html" %}
+  </div>
+</article>
 {% endfor %}
 
-<h2>Extern</h2>
-{% for status,label in [("external_draft","Entwuerfe"),("external_queued","Warteschlange"),("external_sent","Gesendet"),("external_failed","Fehler")] %}
-<h3>{{ label }}</h3>
-{% set rows = groups[status] %}
-{% include "partials/email_table.html" %}
+<h3>Extern</h3>
+{% for status,label in [("external_draft","Entwürfe"),("external_queued","Warteschlange"),("external_sent","Gesendet"),("external_failed","Fehler")] %}
+<article class="section-card">
+  <div class="section-head"><h3>{{ label }}</h3><span class="badge">{{ groups[status]|length }}</span></div>
+  <div class="section-body">
+    {% set rows = groups[status] %}
+    {% include "partials/email_table.html" %}
+  </div>
+</article>
 {% endfor %}
 {% endblock %}

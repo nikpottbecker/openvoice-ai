@@ -108,12 +108,43 @@ def build_internal_summary_body(state: AgentState, errors: list[str]) -> str:
 
 
 def extract_email(text: str) -> str | None:
-    match = EMAIL_RE.search(text)
+    normalized = normalize_spoken_email(text)
+    match = EMAIL_RE.search(normalized)
     return match.group(0) if match else None
 
 
+def normalize_spoken_email(text: str) -> str:
+    normalized = text.lower()
+    if "\u00c3" in normalized or "\u00c2" in normalized:
+        try:
+            normalized = normalized.encode("latin1").decode("utf-8")
+        except UnicodeError:
+            pass
+    replacements = {
+        "ät": "@",
+        " at ": "@",
+        " ad ": "@",
+        " klammeraffe ": "@",
+        " punkt ": ".",
+        " dot ": ".",
+        " minus ": "-",
+        " bindestrich ": "-",
+        " unterstrich ": "_",
+        " underscore ": "_",
+    }
+    normalized = f" {normalized} "
+    for spoken, char in replacements.items():
+        normalized = normalized.replace(spoken, char)
+    normalized = re.sub(r"\s*@\s*", "@", normalized)
+    normalized = re.sub(r"\s*\.\s*", ".", normalized)
+    normalized = re.sub(r"\s*-\s*", "-", normalized)
+    normalized = re.sub(r"\s*_\s*", "_", normalized)
+    normalized = re.sub(r"\s+", " ", normalized)
+    return normalized.strip()
+
+
 def consent_for_external_mail(text: str) -> bool:
-    lowered = text.lower()
+    lowered = normalize_spoken_email(text)
     return any(word in lowered for word in ("ja", "gerne", "bitte", "zusammenfassung", "terminbestaetigung", "terminbestätigung", "per e-mail", "per email"))
 
 

@@ -1,13 +1,26 @@
 {% if live %}
-<div class="panel">
-  <div class="split"><b>Telefonnummer</b><span>{{ live.phone }}</span></div>
-  <div class="split"><b>Dauer</b><span>{{ live.duration if live.duration else "beendet" }}</span></div>
-  <div class="split"><b>Schritt</b><span>{{ live.step }}</span></div>
-  <div class="split"><b>Intent</b><span>{{ live.intent }}</span></div>
-  <h3>Live Transcript</h3>
-  <pre>{{ "\n".join(live.transcript) }}</pre>
-  <h3>KI Antwort</h3>
-  <p>{{ live.reply }}</p>
+<div class="dashboard-grid">
+  <article class="section-card">
+    <div class="section-head">
+      <h3>Gespräch {{ live.call_id }}</h3>
+      <span class="badge">{{ live.step }}</span>
+    </div>
+    <div class="section-body">
+      <div class="grid">
+        <div class="tile"><span>Telefonnummer</span><strong>{{ live.phone }}</strong></div>
+        <div class="tile"><span>Dauer</span><strong>{{ live.duration if live.duration else "beendet" }}</strong></div>
+        <div class="tile"><span>Intent</span><strong>{{ live.intent if live.intent else "n/a" }}</strong></div>
+      </div>
+      <h3>Live Transcript</h3>
+      <pre>{{ "\n".join(live.transcript) }}</pre>
+    </div>
+  </article>
+  <article class="section-card">
+    <div class="section-head"><h3>KI Antwort</h3><span class="badge">Assistant</span></div>
+    <div class="section-body">
+      <p>{{ live.reply if live.reply else "Noch keine Antwort im Log." }}</p>
+    </div>
+  </article>
 </div>
 {% else %}
 <div class="empty">Noch kein echter Anruf gefunden.</div>

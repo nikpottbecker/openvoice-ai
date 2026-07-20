@@ -1,11 +1,26 @@
 {% extends "base.html" %}
 {% block content %}
-<header><h2>Termine, Rueckrufe, Nachrichten</h2></header>
+<header class="page-header">
+  <div class="page-title">
+    <h2>Aufgaben</h2>
+    <p>Termine, Rückrufe und Nachrichten aus echten Gesprächen.</p>
+  </div>
+  <span class="pill">{{ items|length }} offen</span>
+</header>
 <div class="list">
 {% for item in items %}
-  <article><b>{{ item.type }}</b><span>{{ item.phone }}</span><p>{{ item.summary }}</p><em>{{ item.status }}</em></article>
+  <article class="section-card">
+    <div class="section-head">
+      <h3>{{ item.type }}</h3>
+      <span class="badge">{{ item.status }}</span>
+    </div>
+    <div class="section-body">
+      <div class="split"><span>Telefon</span><strong>{{ item.phone }}</strong></div>
+      <p>{{ item.summary }}</p>
+    </div>
+  </article>
 {% else %}
-  <div class="empty">Keine offenen Eintraege.</div>
+  <div class="empty">Keine offenen Einträge.</div>
 {% endfor %}
 </div>
 {% endblock %}

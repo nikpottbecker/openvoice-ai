@@ -1,7 +1,21 @@
 {% extends "base.html" %}
 {% block content %}
-<header><h2>Logs</h2></header>
-{% for name,content in logs.items() %}
-<h3>{{ name }}</h3><pre>{{ content }}</pre>
-{% endfor %}
+<header class="page-header">
+  <div class="page-title">
+    <h2>Logs</h2>
+    <p>Phone-Agent, Asterisk, Fehler und Healthcheck auf einen Blick.</p>
+  </div>
+  <span class="pill">Read only</span>
+</header>
+<div class="list">
+  {% for name,content in logs.items() %}
+  <article class="section-card">
+    <div class="section-head">
+      <h3>{{ name }}</h3>
+      <span class="badge">{{ content.splitlines()|length }} Zeilen</span>
+    </div>
+    <div class="section-body"><pre>{{ content }}</pre></div>
+  </article>
+  {% endfor %}
+</div>
 {% endblock %}

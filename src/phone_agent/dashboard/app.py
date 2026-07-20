@@ -18,6 +18,7 @@ from fastapi.templating import Jinja2Templates
 from phone_agent.config import get_settings
 from phone_agent.email.drafts import delete_draft, get_draft, list_drafts, mark_error, mark_sent, update_draft
 from phone_agent.email.smtp_client import send_message
+from phone_agent.menu import HybridAction, default_menu_config, load_menu_config
 
 
 BASE_DIR = Path(__file__).resolve().parent
@@ -53,11 +54,6 @@ async def require_cloudflare_access(request: Request, call_next):
     return await call_next(request)
 
 
-@app.on_event("startup")
-def startup() -> None:
-    _connect().close()
-
-
 @app.get("/healthz", response_class=PlainTextResponse)
 def healthz() -> str:
     return "ok"
@@ -66,9 +62,9 @@ def healthz() -> str:
 @app.get("/", response_class=HTMLResponse)
 def overview(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
+        request,
         "overview.html",
         {
-            "request": request,
             "active": "overview",
             "overview": collect_overview(),
             "calls": recent_calls(5),
@@ -79,17 +75,18 @@ def overview(request: Request) -> HTMLResponse:
 @app.get("/live", response_class=HTMLResponse)
 def live(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
+        request,
         "live.html",
-        {"request": request, "active": "live", "live": live_call()},
+        {"active": "live", "live": live_call()},
     )
 
 
 @app.get("/history", response_class=HTMLResponse)
 def history(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
+        request,
         "history.html",
         {
-            "request": request,
             "active": "history",
             "calls": recent_calls(50),
             "storage": recording_storage(),
@@ -105,8 +102,9 @@ def call_detail(request: Request, call_id: str) -> HTMLResponse:
     if not call:
         return HTMLResponse("Call not found", status_code=404)
     return templates.TemplateResponse(
+        request,
         "call_detail.html",
-        {"request": request, "active": "history", "call": call, "segments": audio_segments(call_id)},
+        {"active": "history", "call": call, "segments": audio_segments(call_id)},
     )
 
 
@@ -127,16 +125,95 @@ def call_audio(request: Request, call_id: str, filename: str, download: bool = F
 @app.get("/tasks", response_class=HTMLResponse)
 def tasks(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
+        request,
         "tasks.html",
-        {"request": request, "active": "tasks", "items": task_items()},
+        {"active": "tasks", "items": task_items()},
     )
+
+
+@app.get("/menu", response_class=HTMLResponse)
+def phone_menu(request: Request) -> HTMLResponse:
+    settings = get_settings()
+    path = settings.config_dir / "phone_menu.json"
+    config = load_menu_config(path)
+    raw = path.read_text(encoding="utf-8") if path.exists() else menu_config_json(default=True)
+    return templates.TemplateResponse(
+        request,
+        "menu.html",
+        {
+            "active": "menu",
+            "menu": config,
+            "config_json": raw,
+            "message": "",
+            "error": "",
+        },
+    )
+
+
+@app.post("/menu", response_class=HTMLResponse)
+def phone_menu_save(request: Request, config_json: str = Form(...)) -> HTMLResponse:
+    settings = get_settings()
+    path = settings.config_dir / "phone_menu.json"
+    tmp = path.with_suffix(".json.tmp")
+    error = ""
+    message = ""
+    try:
+        validate_menu_config_json(config_json)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        tmp.write_text(config_json, encoding="utf-8")
+        config = load_menu_config(tmp)
+        path.write_text(config_json, encoding="utf-8")
+        tmp.unlink(missing_ok=True)
+        message = "Menue gespeichert. Neustart des AGI ist nicht noetig; neue Calls laden die Konfiguration."
+        logger.info("phone_menu_saved user=%s items=%s", _user(request), len(config.items))
+    except Exception as exc:
+        tmp = path.with_suffix(".json.tmp")
+        tmp.unlink(missing_ok=True)
+        config = load_menu_config(path)
+        error = f"Konfiguration ungueltig: {exc}"
+        logger.exception("phone_menu_save_failed user=%s", _user(request))
+    return templates.TemplateResponse(
+        request,
+        "menu.html",
+        {
+            "active": "menu",
+            "menu": config,
+            "config_json": config_json,
+            "message": message,
+            "error": error,
+        },
+    )
+
+
+def validate_menu_config_json(config_json: str) -> None:
+    parsed = json.loads(config_json)
+    if not isinstance(parsed, dict):
+        raise ValueError("root must be an object")
+    items = parsed.get("items")
+    if not isinstance(items, list) or not items:
+        raise ValueError("items must be a non-empty list")
+    valid_actions = {action.value for action in HybridAction}
+    keys = set()
+    for index, item in enumerate(items):
+        if not isinstance(item, dict):
+            raise ValueError(f"item {index} must be an object")
+        key = str(item.get("key", ""))
+        action = str(item.get("action", ""))
+        if not key:
+            raise ValueError(f"item {index} has no key")
+        if key in keys:
+            raise ValueError(f"duplicate key {key}")
+        if action not in valid_actions:
+            raise ValueError(f"invalid action {action}")
+        keys.add(key)
 
 
 @app.get("/logs", response_class=HTMLResponse)
 def logs(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
+        request,
         "logs.html",
-        {"request": request, "active": "logs", "logs": collect_logs()},
+        {"active": "logs", "logs": collect_logs()},
     )
 
 
@@ -152,8 +229,9 @@ def email_page(request: Request) -> HTMLResponse:
         "external_failed": [item for item in drafts if item.get("audience", "external") == "external" and item["status"] in {"failed", "error"}],
     }
     return templates.TemplateResponse(
+        request,
         "email.html",
-        {"request": request, "active": "email", "groups": grouped},
+        {"active": "email", "groups": grouped},
     )
 
 
@@ -163,8 +241,9 @@ def email_draft_view(request: Request, draft_id: int) -> HTMLResponse:
     if not draft:
         return HTMLResponse("Draft not found", status_code=404)
     return templates.TemplateResponse(
+        request,
         "email_draft.html",
-        {"request": request, "active": "email", "draft": draft},
+        {"active": "email", "draft": draft},
     )
 
 
@@ -223,22 +302,24 @@ def email_test_send(request: Request, recipient: str = Form(...)) -> RedirectRes
 @app.get("/ai", response_class=HTMLResponse)
 def ai(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
+        request,
         "ai.html",
-        {"request": request, "active": "ai", "ai": collect_ai()},
+        {"active": "ai", "ai": collect_ai()},
     )
 
 
 @app.get("/settings", response_class=HTMLResponse)
 def settings_page(request: Request) -> HTMLResponse:
     return templates.TemplateResponse(
+        request,
         "settings.html",
-        {"request": request, "active": "settings", "settings": safe_settings()},
+        {"active": "settings", "settings": safe_settings()},
     )
 
 
 @app.get("/partials/live", response_class=HTMLResponse)
 def live_partial(request: Request) -> HTMLResponse:
-    return templates.TemplateResponse("partials/live_panel.html", {"request": request, "live": live_call()})
+    return templates.TemplateResponse(request, "partials/live_panel.html", {"live": live_call()})
 
 
 def collect_overview() -> dict[str, Any]:
@@ -486,6 +567,30 @@ def human_size(size: int) -> str:
         if value < 1024 or unit == "GB":
             return f"{value:.1f} {unit}"
         value /= 1024
+
+
+def menu_config_json(default: bool = False) -> str:
+    config = default_menu_config() if default else load_menu_config()
+    return json.dumps(
+        {
+            "prompt": config.prompt,
+            "timeout_prompt": config.timeout_prompt,
+            "invalid_prompt": config.invalid_prompt,
+            "max_retries": config.max_retries,
+            "items": [
+                {
+                    "key": item.key,
+                    "action": item.action.value,
+                    "label": item.label,
+                    "speech": list(item.speech),
+                    "enabled": item.enabled,
+                }
+                for item in config.items
+            ],
+        },
+        ensure_ascii=False,
+        indent=2,
+    )
 
 
 def valid_id(value: str) -> bool:

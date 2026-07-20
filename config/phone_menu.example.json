@@ -1,0 +1,92 @@
+{
+  "prompt": "Fuer Termin 1 oder Termin sagen. Fuer Rueckruf 4. Fuer Nachricht 5. Fuer Infos 6. Fuer Mitarbeiter 7.",
+  "timeout_prompt": "Keine Eingabe erkannt. Druecken Sie 9 fuer das Menue oder 7 fuer Mitarbeiter.",
+  "invalid_prompt": "Diese Auswahl ist nicht verfuegbar. Bitte 1 bis 7 oder 9 druecken.",
+  "max_retries": 2,
+  "items": [
+    {
+      "key": "1",
+      "action": "CREATE_APPOINTMENT",
+      "label": "Termin vereinbaren",
+      "speech": ["termin", "buchen", "vereinbaren"],
+      "enabled": true
+    },
+    {
+      "key": "2",
+      "action": "CHANGE_APPOINTMENT",
+      "label": "Termin aendern",
+      "speech": ["verschieben", "aendern", "andern"],
+      "enabled": true
+    },
+    {
+      "key": "3",
+      "action": "CANCEL_APPOINTMENT",
+      "label": "Termin absagen",
+      "speech": ["absagen", "stornieren"],
+      "enabled": true
+    },
+    {
+      "key": "4",
+      "action": "REQUEST_CALLBACK",
+      "label": "Rueckruf anfordern",
+      "speech": ["rueckruf", "ruckruf", "zurueckrufen"],
+      "enabled": true
+    },
+    {
+      "key": "5",
+      "action": "LEAVE_MESSAGE",
+      "label": "Nachricht hinterlassen",
+      "speech": ["nachricht", "anfrage", "mitteilung"],
+      "enabled": true
+    },
+    {
+      "key": "6",
+      "action": "GET_INFORMATION",
+      "label": "Informationen",
+      "speech": ["oeffnungszeiten", "offnungszeiten", "adresse", "info"],
+      "enabled": true
+    },
+    {
+      "key": "7",
+      "action": "TRANSFER_CALL",
+      "label": "Mitarbeiter",
+      "speech": ["mitarbeiter", "verbinden", "weiterleitung"],
+      "enabled": true
+    },
+    {
+      "key": "8",
+      "action": "CHANGE_LANGUAGE",
+      "label": "Sprache",
+      "speech": ["sprache", "englisch", "niederlaendisch"],
+      "enabled": true
+    },
+    {
+      "key": "9",
+      "action": "REPEAT_MENU",
+      "label": "Menue wiederholen",
+      "speech": ["wiederholen", "menue"],
+      "enabled": true
+    },
+    {
+      "key": "0",
+      "action": "GO_BACK",
+      "label": "Hilfe oder Hauptmenue",
+      "speech": ["hilfe", "zurueck", "zuruck"],
+      "enabled": true
+    },
+    {
+      "key": "*",
+      "action": "GO_BACK",
+      "label": "Zurueck",
+      "speech": ["zurueck", "zuruck"],
+      "enabled": true
+    },
+    {
+      "key": "#",
+      "action": "CONFIRM",
+      "label": "Bestaetigen",
+      "speech": ["bestaetigen", "fertig"],
+      "enabled": true
+    }
+  ]
+}

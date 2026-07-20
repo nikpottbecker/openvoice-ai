@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block content %}
-<header><h2>Live Calls</h2><span class="pill">auto refresh</span></header>
+<header class="page-header">
+  <div class="page-title">
+    <h2>Live Call</h2>
+    <p>Aktueller Gesprächsschritt, Transkript, Intent und KI-Antwort.</p>
+  </div>
+  <span class="pill"><span class="status-dot ok"></span>Auto refresh</span>
+</header>
 <section hx-get="/partials/live" hx-trigger="every 2s" hx-swap="innerHTML">
   {% include "partials/live_panel.html" %}
 </section>

@@ -1,7 +1,14 @@
 {% extends "base.html" %}
 {% block content %}
-<header><h2>Uebersicht</h2><span class="pill">{{ overview.live_status }}</span></header>
-<section class="grid">
+<header class="page-header">
+  <div class="page-title">
+    <h2>Dashboard</h2>
+    <p>Live-Zustand von Telefonie, Agent, KI und den letzten Gesprächen.</p>
+  </div>
+  <span class="pill"><span class="status-dot ok"></span>{{ overview.live_status }}</span>
+</header>
+
+<section class="metric-grid">
   <div class="tile"><span>SIP</span><strong>{{ overview.sip_status }}</strong></div>
   <div class="tile"><span>Agent</span><strong>{{ overview.agent_status }}</strong></div>
   <div class="tile"><span>CPU</span><strong>{{ overview.cpu }}%</strong></div>
@@ -11,6 +18,28 @@
   <div class="tile"><span>Letzter Anruf</span><strong>{{ overview.last_call.phone if overview.last_call else "n/a" }}</strong></div>
   <div class="tile"><span>Antwortzeit</span><strong>{{ overview.avg_response }}</strong></div>
 </section>
-<h3>Letzte Gespraeche</h3>
-{% include "partials/call_table.html" %}
+
+<section class="dashboard-grid">
+  <article class="section-card">
+    <div class="section-head">
+      <h3>Letzte Gespräche</h3>
+      <a class="button secondary" href="/history">Alle anzeigen</a>
+    </div>
+    <div class="section-body">
+      {% include "partials/call_table.html" %}
+    </div>
+  </article>
+  <article class="section-card">
+    <div class="section-head">
+      <h3>Betriebsqualität</h3>
+      <span class="badge">Realtime</span>
+    </div>
+    <div class="section-body">
+      <div class="split"><span>Aktives STT Modell</span><strong>{{ overview.model }}</strong></div>
+      <div class="split"><span>LLM Provider</span><strong>{{ overview.provider }}</strong></div>
+      <div class="split"><span>SIP Registrierung</span><strong>{{ overview.sip_status }}</strong></div>
+      <div class="split"><span>Durchschnittliche Antwortzeit</span><strong>{{ overview.avg_response }}</strong></div>
+    </div>
+  </article>
+</section>
 {% endblock %}
