@@ -47,6 +47,9 @@ install -m 0755 scripts/healthcheck.sh "$APP_DIR/scripts/healthcheck.sh"
 install -m 0755 scripts/install_piper.sh "$APP_DIR/scripts/install_piper.sh"
 install -m 0755 scripts/simulate_call.sh "$APP_DIR/scripts/simulate_call.sh"
 install -m 0755 scripts/update.sh "$APP_DIR/scripts/update.sh"
+install -m 0755 scripts/production_audit.sh "$APP_DIR/scripts/production_audit.sh"
+install -m 0755 scripts/deploy_production.sh "$APP_DIR/scripts/deploy_production.sh"
+install -m 0755 scripts/rollback_production.sh "$APP_DIR/scripts/rollback_production.sh"
 cat > "$APP_DIR/agi-bin/phone-agent-agi" <<'EOF'
 #!/usr/bin/env bash
 cd /opt/phone-agent
