@@ -81,6 +81,12 @@ systemctl restart phone-agent-dashboard.service
 
 echo "== Healthcheck"
 "$APP_DIR/scripts/healthcheck.sh"
+for attempt in {1..20}; do
+  if curl -fsS http://127.0.0.1:8088/healthz >/dev/null; then
+    break
+  fi
+  sleep 1
+done
 curl -fsS http://127.0.0.1:8088/healthz >/dev/null
 
 echo "== Production audit"

@@ -2,6 +2,15 @@
 
 All notable changes to OpenVoice AI will be documented in this file.
 
+## 0.1.3 - 2026-07-21
+
+Production deployment hotfix release.
+
+- Fix production deploy when `/opt/phone-agent` is an installed copy instead of a Git checkout.
+- Avoid self-copy failures in the deploy script.
+- Keep deployment working when the `asterisk` user is missing in dashboard-only containers.
+- Avoid importing Python's removed `audioop` module during dashboard startup on Python 3.13.
+
 ## 0.1.2 - 2026-07-21
 
 Preview patch release focused on making dashboard and production operations less local-only.
