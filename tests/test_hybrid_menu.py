@@ -18,6 +18,27 @@ def test_dtmf_and_speech_share_create_appointment_action() -> None:
     assert action_from_speech("Ich brauche einen Termin", config) == HybridAction.CREATE_APPOINTMENT
 
 
+def test_default_menu_prompt_is_dtmf_first_and_offers_ai_agent() -> None:
+    config = default_menu_config()
+
+    assert "Druecken Sie die 1 fuer einen Termin" in config.prompt
+    assert "Druecken Sie die 2, um mit dem KI Agenten zu sprechen" in config.prompt
+    assert "sagen" not in config.prompt.lower()
+    assert "sprechen sie" not in config.prompt.lower()
+
+
+def test_dtmf_two_opens_ai_agent_flow() -> None:
+    state = AgentState(call_id="menu-ai-agent", caller_id="anonymous")
+    menu = HybridMenuSession(state)
+
+    result = menu.handle_dtmf("2")
+
+    assert result.should_end_call is False
+    assert result.reply == "Gerne. Worum geht es?"
+    assert state.expected_slot is None
+    assert menu.menu_level == "agent"
+
+
 def test_speech_examples_map_to_expected_actions() -> None:
     config = default_menu_config()
 
@@ -68,7 +89,7 @@ def test_change_and_cancel_appointment_have_safe_message_flows() -> None:
     state = AgentState(call_id="menu-change-cancel", caller_id="anonymous")
     menu = HybridMenuSession(state)
 
-    change = menu.handle_dtmf("2")
+    change = menu.handle_speech_action("Ich moechte meinen Termin aendern")
     assert "aendern" in change.reply
     assert state.expected_slot == "message"
 
@@ -96,7 +117,7 @@ def test_message_slot_finishes_without_llm() -> None:
 def test_change_appointment_message_finishes_without_llm() -> None:
     state = AgentState(call_id="menu-change-message", caller_id="anonymous")
     menu = HybridMenuSession(state)
-    menu.handle_dtmf("2")
+    menu.handle_speech_action("Ich moechte meinen Termin verschieben")
 
     result = menu.handle_slot_speech("Nik Pottbecker, Termin Mittwoch bitte auf Freitag verschieben.")
 

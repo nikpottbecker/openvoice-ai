@@ -16,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 class HybridAction(str, Enum):
     CREATE_APPOINTMENT = "CREATE_APPOINTMENT"
+    TALK_TO_AGENT = "TALK_TO_AGENT"
     CHANGE_APPOINTMENT = "CHANGE_APPOINTMENT"
     CANCEL_APPOINTMENT = "CANCEL_APPOINTMENT"
     REQUEST_CALLBACK = "REQUEST_CALLBACK"
@@ -59,15 +60,18 @@ class HybridMenuConfig:
 def default_menu_config() -> HybridMenuConfig:
     return HybridMenuConfig(
         prompt=(
-            "Fuer Termin 1 oder Termin sagen. Fuer Rueckruf 4. "
-            "Fuer Nachricht 5. Fuer Infos 6. Fuer Mitarbeiter 7."
+            "Willkommen bei OpenVoice AI. "
+            "Druecken Sie die 1 fuer einen Termin. "
+            "Druecken Sie die 2, um mit dem KI Agenten zu sprechen. "
+            "Druecken Sie die 4 fuer einen Rueckruf. "
+            "Oder druecken Sie die 5 fuer eine Nachricht."
         ),
         timeout_prompt="Keine Eingabe erkannt. Druecken Sie 9 fuer das Menue oder 7 fuer Mitarbeiter.",
         invalid_prompt="Diese Auswahl ist nicht verfuegbar. Bitte 1 bis 7 oder 9 druecken.",
         max_retries=2,
         items=(
             MenuItem("1", HybridAction.CREATE_APPOINTMENT, "Termin vereinbaren", ("termin", "buchen", "vereinbaren")),
-            MenuItem("2", HybridAction.CHANGE_APPOINTMENT, "Termin aendern", ("verschieben", "aendern", "andern")),
+            MenuItem("2", HybridAction.TALK_TO_AGENT, "Mit KI Agent sprechen", ("ki", "agent", "assistent")),
             MenuItem("3", HybridAction.CANCEL_APPOINTMENT, "Termin absagen", ("absagen", "stornieren")),
             MenuItem("4", HybridAction.REQUEST_CALLBACK, "Rueckruf anfordern", ("rueckruf", "ruckruf", "zurueckrufen")),
             MenuItem("5", HybridAction.LEAVE_MESSAGE, "Nachricht hinterlassen", ("nachricht", "anfrage", "mitteilung")),
@@ -186,6 +190,12 @@ class HybridMenuSession:
             self.state.expected_slot = "appointment_day"
             self.menu_level = "appointment_day"
             return self._reply("Termin. Druecken Sie 1 Montag bis 5 Freitag, oder 6 fuer schnellstmoeglich.")
+        if action == HybridAction.TALK_TO_AGENT:
+            self._reset_retries()
+            self.state.intent = "unknown"
+            self.state.expected_slot = None
+            self.menu_level = "agent"
+            return self._reply("Gerne. Worum geht es?")
         if action == HybridAction.CHANGE_APPOINTMENT:
             self._reset_retries()
             self.state.intent = "appointment"
