@@ -2,6 +2,17 @@
 
 All notable changes to OpenVoice AI will be documented in this file.
 
+## 0.1.2 - 2026-07-21
+
+Preview patch release focused on making dashboard and production operations less local-only.
+
+- Add interactive dashboard settings for STT, recording, LLM provider and runtime limits without exposing secrets.
+- Add TTS configuration page with voice selection, fallback voice, sample generation and persisted settings.
+- Add real dashboard status APIs for system metrics, Asterisk/SIP state, active channels, live calls, recordings and AI usage.
+- Filter simulated/demo transcripts out of real call history.
+- Add production audit, deploy and rollback scripts for LXC deployments with backups before service changes.
+- Add production operations documentation and live-call verification protocol.
+
 ## 0.1.1 - 2026-07-20
 
 Preview patch release focused on call quality, observability and dashboard polish.
