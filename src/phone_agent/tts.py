@@ -2,7 +2,6 @@ import hashlib
 import logging
 import subprocess
 import wave
-import audioop
 from pathlib import Path
 
 from .config import get_settings
@@ -130,6 +129,11 @@ def convert_for_asterisk(source_wav: Path, output_wav: Path, sample_rate: int = 
 
 
 def _convert_pcm_wav_python(source_wav: Path, output_wav: Path, sample_rate: int) -> None:
+    try:
+        import audioop
+    except ModuleNotFoundError as exc:
+        raise RuntimeError("ffmpeg is required for WAV conversion on Python without audioop") from exc
+
     with wave.open(str(source_wav), "rb") as source:
         channels = source.getnchannels()
         width = source.getsampwidth()
