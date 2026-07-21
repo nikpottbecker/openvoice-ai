@@ -8,7 +8,7 @@ from phone_agent.models import AgentState
 
 from .drafts import create_draft, mark_error, mark_sent
 from .smtp_client import send_message
-from .templates import build_draft_body, build_internal_note, classify_subject
+from .templates import build_draft_body, build_internal_note, build_internal_summary_html, classify_subject
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,7 @@ def send_internal_summary(state: AgentState, errors: list[str]) -> int | None:
         return None
     subject = f"Neuer Telefonanruf - {datetime.now().strftime('%d.%m.%Y %H:%M')}"
     body = build_internal_summary_body(state, errors)
+    html_body = build_internal_summary_html(state, errors, dashboard_url())
     draft_id = create_draft(
         state.call_id,
         settings.internal_summary_to,
@@ -42,7 +43,7 @@ def send_internal_summary(state: AgentState, errors: list[str]) -> int | None:
         status="queued",
     )
     try:
-        send_message(settings.internal_summary_to, subject, body)
+        send_message(settings.internal_summary_to, subject, body, html_body=html_body)
         mark_sent(draft_id)
         logger.info("internal_email_sent call_id=%s draft_id=%s recipient=%s", state.call_id, draft_id, settings.internal_summary_to)
     except Exception as exc:
@@ -63,7 +64,7 @@ def create_external_draft_if_requested(state: AgentState) -> int | None:
     subject = classify_subject(state)
     body = build_draft_body(state)
     internal_note = build_internal_note(state)
-    draft_id = create_draft(state.call_id, email, subject, body, internal_note, audience="external", status="draft")
+    draft_id = create_draft(state.call_id, email, subject, body, internal_note + "\n\nHTML-Vorschau wird beim Versand automatisch erzeugt.", audience="external", status="draft")
     logger.info("external_email_draft_created call_id=%s draft_id=%s recipient=%s subject=%s", state.call_id, draft_id, email, subject)
     return draft_id
 
@@ -74,7 +75,7 @@ def build_internal_summary_body(state: AgentState, errors: list[str]) -> str:
     transcript = _transcript_text(state) or "Kein Transkript vorhanden."
     email = extract_email(transcript) or "nicht vorhanden"
     audio = _latest_audio_path(state.call_id) or "nicht vorhanden"
-    dashboard = settings.dashboard_public_url or "lokal: http://127.0.0.1:8088"
+    dashboard = dashboard_url()
     callback = "ja" if state.intent == "callback" or appointment.phone else "nein"
     lines = [
         f"Telefonnummer: {state.caller_id}",
@@ -105,6 +106,10 @@ def build_internal_summary_body(state: AgentState, errors: list[str]) -> str:
     if errors:
         lines.extend(["", "Fehler:", *errors])
     return "\n".join(lines)
+
+
+def dashboard_url() -> str:
+    return (get_settings().dashboard_public_url or "http://127.0.0.1:8088").rstrip("/") + "/"
 
 
 def extract_email(text: str) -> str | None:

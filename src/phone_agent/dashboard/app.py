@@ -17,7 +17,9 @@ from fastapi.templating import Jinja2Templates
 
 from phone_agent.config import get_settings, load_runtime_settings, save_runtime_settings
 from phone_agent.email.drafts import delete_draft, get_draft, list_drafts, mark_error, mark_sent, update_draft
+from phone_agent.email.mail_service import dashboard_url
 from phone_agent.email.smtp_client import send_message
+from phone_agent.email.templates import build_manual_email_html
 from phone_agent.menu import HybridAction, default_menu_config, load_menu_config
 from phone_agent.tts import synthesize_with_config
 from phone_agent.tts_config import TTSConfig, available_tts_voices, load_tts_config, save_tts_config, validate_tts_config
@@ -365,7 +367,8 @@ def email_draft_send(request: Request, draft_id: int) -> RedirectResponse:
         logger.warning("internal_email_manual_send_blocked draft_id=%s user=%s", draft_id, _user(request))
         return RedirectResponse(f"/email/drafts/{draft_id}", status_code=303)
     try:
-        send_message(draft["recipient"], draft["subject"], draft["body"])
+        html_body = build_manual_email_html(draft["subject"], draft["body"], dashboard_url())
+        send_message(draft["recipient"], draft["subject"], draft["body"], html_body=html_body)
         mark_sent(draft_id)
         logger.info("email_draft_sent draft_id=%s user=%s recipient=%s subject=%s", draft_id, _user(request), draft["recipient"], draft["subject"])
     except Exception as exc:
@@ -380,7 +383,8 @@ def email_test_send(request: Request, recipient: str = Form(...)) -> RedirectRes
     subject = "Phone-Agent Testmail"
     body = "Dies ist eine manuell ausgeloeste Testmail aus dem Phone-Agent Dashboard."
     try:
-        send_message(recipient.strip(), subject, body)
+        html_body = build_manual_email_html(subject, body, dashboard_url())
+        send_message(recipient.strip(), subject, body, html_body=html_body)
         logger.info("email_test_sent user=%s recipient=%s", _user(request), recipient)
     except Exception:
         logger.exception("email_test_failed user=%s recipient=%s", _user(request), recipient)
