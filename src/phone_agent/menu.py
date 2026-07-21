@@ -60,11 +60,11 @@ class HybridMenuConfig:
 def default_menu_config() -> HybridMenuConfig:
     return HybridMenuConfig(
         prompt=(
-            "Willkommen beim Telefonagenten von Nik Pottbecker. "
-            "Druecken Sie die 1 fuer einen Termin. "
-            "Druecken Sie die 2, um mit dem KI Agenten zu sprechen. "
-            "Druecken Sie die 4 fuer einen Rueckruf. "
-            "Oder druecken Sie die 5 fuer eine Nachricht."
+            "Willkommen beim Telefonagenten von Nik Pottbecker, "
+            "drücken Sie die 1 für einen Termin. "
+            "Drücken Sie die 2, um mit dem KI Agenten zu sprechen. "
+            "Drücken Sie die 4 für einen Rückruf. "
+            "Oder drücken Sie die 5 für eine Nachricht."
         ),
         timeout_prompt="Keine Eingabe erkannt. Druecken Sie 9 fuer das Menue oder 7 fuer Mitarbeiter.",
         invalid_prompt="Diese Auswahl ist nicht verfuegbar. Bitte 1 bis 7 oder 9 druecken.",

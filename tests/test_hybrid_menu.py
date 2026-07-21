@@ -22,8 +22,8 @@ def test_default_menu_prompt_is_dtmf_first_and_offers_ai_agent() -> None:
     config = default_menu_config()
 
     assert config.prompt.startswith("Willkommen beim Telefonagenten von Nik Pottbecker")
-    assert "Druecken Sie die 1 fuer einen Termin" in config.prompt
-    assert "Druecken Sie die 2, um mit dem KI Agenten zu sprechen" in config.prompt
+    assert "drücken Sie die 1 für einen Termin" in config.prompt
+    assert "Drücken Sie die 2, um mit dem KI Agenten zu sprechen" in config.prompt
     assert "sagen" not in config.prompt.lower()
     assert "sprechen sie" not in config.prompt.lower()
 
