@@ -66,7 +66,11 @@ install -m 0644 systemd/phone-agent-dashboard.service /etc/systemd/system/phone-
 install -m 0644 systemd/phone-agent-health.service /etc/systemd/system/phone-agent-health.service
 install -m 0644 systemd/phone-agent-health.timer /etc/systemd/system/phone-agent-health.timer
 chmod 0755 scripts/healthcheck.sh scripts/production_audit.sh scripts/rollback_production.sh
-chown -R asterisk:asterisk "$APP_DIR/logs" "$APP_DIR/recordings" "$APP_DIR/transcripts" /var/lib/asterisk/sounds/phone-agent
+if getent passwd asterisk >/dev/null 2>&1; then
+  chown -R asterisk:asterisk "$APP_DIR/logs" "$APP_DIR/recordings" "$APP_DIR/transcripts" /var/lib/asterisk/sounds/phone-agent
+else
+  echo "warning: asterisk user missing; keeping current ownership for runtime data"
+fi
 
 echo "== Reload services"
 systemctl daemon-reload
