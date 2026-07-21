@@ -1,5 +1,5 @@
 {
-  "prompt": "Willkommen bei OpenVoice AI. Druecken Sie die 1 fuer einen Termin. Druecken Sie die 2, um mit dem KI Agenten zu sprechen. Druecken Sie die 4 fuer einen Rueckruf. Oder druecken Sie die 5 fuer eine Nachricht.",
+  "prompt": "Willkommen beim Telefonagenten von Nik Pottbecker. Druecken Sie die 1 fuer einen Termin. Druecken Sie die 2, um mit dem KI Agenten zu sprechen. Druecken Sie die 4 fuer einen Rueckruf. Oder druecken Sie die 5 fuer eine Nachricht.",
   "timeout_prompt": "Keine Eingabe erkannt. Druecken Sie 9 fuer das Menue oder 7 fuer Mitarbeiter.",
   "invalid_prompt": "Diese Auswahl ist nicht verfuegbar. Bitte 1 bis 7 oder 9 druecken.",
   "max_retries": 2,

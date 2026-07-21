@@ -60,7 +60,7 @@ class HybridMenuConfig:
 def default_menu_config() -> HybridMenuConfig:
     return HybridMenuConfig(
         prompt=(
-            "Willkommen bei OpenVoice AI. "
+            "Willkommen beim Telefonagenten von Nik Pottbecker. "
             "Druecken Sie die 1 fuer einen Termin. "
             "Druecken Sie die 2, um mit dem KI Agenten zu sprechen. "
             "Druecken Sie die 4 fuer einen Rueckruf. "
