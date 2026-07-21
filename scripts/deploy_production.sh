@@ -65,9 +65,7 @@ echo "== Install units and permissions"
 install -m 0644 systemd/phone-agent-dashboard.service /etc/systemd/system/phone-agent-dashboard.service
 install -m 0644 systemd/phone-agent-health.service /etc/systemd/system/phone-agent-health.service
 install -m 0644 systemd/phone-agent-health.timer /etc/systemd/system/phone-agent-health.timer
-install -m 0755 scripts/healthcheck.sh "$APP_DIR/scripts/healthcheck.sh"
-install -m 0755 scripts/production_audit.sh "$APP_DIR/scripts/production_audit.sh"
-install -m 0755 scripts/rollback_production.sh "$APP_DIR/scripts/rollback_production.sh"
+chmod 0755 scripts/healthcheck.sh scripts/production_audit.sh scripts/rollback_production.sh
 chown -R asterisk:asterisk "$APP_DIR/logs" "$APP_DIR/recordings" "$APP_DIR/transcripts" /var/lib/asterisk/sounds/phone-agent
 
 echo "== Reload services"
